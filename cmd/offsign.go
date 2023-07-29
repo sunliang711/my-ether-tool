@@ -58,10 +58,10 @@ func init() {
 	rpc = offsignCmd.Flags().String("rpc", "", "rpc url")
 	from = offsignCmd.Flags().String("from", "", "from address")
 	to = offsignCmd.Flags().String("to", "", "receiver address")
-	value = offsignCmd.Flags().String("value", "", "value (uint: eth)")
+	value = offsignCmd.Flags().String("value", "0", "value (uint: eth)")
 
 	data = offsignCmd.Flags().String("data", "", "data of transaction")
-	gasLimit = offsignCmd.Flags().Uint64("gasLimit", 21000, "gas limit")
+	gasLimit = offsignCmd.Flags().Uint64("gasLimit", 0, "gas limit")
 	nonce = offsignCmd.Flags().String("nonce", "", "nonce")
 	chainID = offsignCmd.Flags().Int("chainID", 0, "chain id")
 	gasPrice = offsignCmd.Flags().String("gasPrice", "", "gas price(gwei)")
@@ -71,13 +71,13 @@ func init() {
 }
 
 func offsign(cmd *cobra.Command, args []string) {
-	utils.ExitWithMsgWhen(*rpc == "", "need rpc")
-	utils.ExitWithMsgWhen(*from == "", "need from")
-	utils.ExitWithMsgWhen(*to == "", "need to")
-	utils.ExitWithMsgWhen(*value == "", "need value")
+	utils.ExitWithMsgWhen(*rpc == "", "need rpc\n")
+	utils.ExitWithMsgWhen(*from == "", "need from\n")
+	utils.ExitWithMsgWhen(*to == "", "need to\n")
+	// utils.ExitWithMsgWhen(*value == "", "need value")
 
 	tx, err := transaction.BuildTransaction(*rpc, *from, *to, *value, *data, *gasLimit, *nonce, *chainID, *gasPrice, *tipCap, *feeCap, *eip1599)
-	utils.ExitWhenError(err, "build transaction error: %s", err)
+	utils.ExitWhenError(err, "build transaction error: %s\n", err)
 
 	signer := types.NewCancunSigner(tx.ChainId())
 	txHash := signer.Hash(tx)
