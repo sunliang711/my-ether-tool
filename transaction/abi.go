@@ -16,6 +16,9 @@ var (
 	uint256Type abi.Type
 	bytes32Type abi.Type
 	addressType abi.Type
+
+	bytesType  abi.Type
+	stringType abi.Type
 )
 
 func init() {
@@ -33,6 +36,17 @@ func init() {
 	if err != nil {
 		panic("create address failed")
 	}
+
+	bytesType, err = abi.NewType("bytes", "", nil)
+	if err != nil {
+		panic("create bytes failed")
+	}
+
+	stringType, err = abi.NewType("string", "", nil)
+	if err != nil {
+		panic("create string failed")
+	}
+
 }
 
 func AbiEncode(abiStr string, abiArgs []string) (result []byte, err error) {
@@ -62,36 +76,49 @@ func AbiEncode(abiStr string, abiArgs []string) (result []byte, err error) {
 		for i := range types {
 			abiArg := (abiArgs)[i]
 			fmt.Printf("> abi arg: %s\n", abiArg)
+			var arg abi.Argument
+			var argValue any
 
 			switch types[i] {
 			case "address":
 				fmt.Printf("> address type\n")
-				arguments = append(arguments, abi.Argument{Type: addressType})
-				argumentsValue = append(argumentsValue, common.HexToAddress(abiArg))
+				arg = abi.Argument{Type: addressType}
+				argValue = common.HexToAddress(abiArg)
 			case "uint256":
 				fmt.Printf("> uint256 type\n")
-				arguments = append(arguments, abi.Argument{Type: uint256Type})
+				arg = abi.Argument{Type: uint256Type}
 				v, ok := new(big.Int).SetString(abiArg, 10)
 				if !ok {
 					err = errors.New("invalid uint256 type argument")
 					return
 				}
-				argumentsValue = append(argumentsValue, v)
+				argValue = v
 			case "bytes32":
-				var decoded []byte
 				fmt.Printf("> bytes32 type\n")
-				arguments = append(arguments, abi.Argument{Type: bytes32Type})
+				arg = abi.Argument{Type: bytes32Type}
+				argValue = common.HexToHash(abiArg)
+			case "bytes":
+				fmt.Printf("> bytes type\n")
+				arg = abi.Argument{Type: bytesType}
+				var decoded []byte
 				decoded, err = hex.DecodeString(abiArg)
 				if err != nil {
-					err = fmt.Errorf("invalid bytes32 type argument: %s", err)
+					err = fmt.Errorf("invalid bytes type argument: %s", err)
 					return
 				}
-				argumentsValue = append(argumentsValue, decoded)
+				argValue = decoded
+			case "string":
+				fmt.Printf("> string type\n")
+				arg = abi.Argument{Type: stringType}
+				argValue = abiArg
 			// TODO: other types
 			default:
 				err = fmt.Errorf("not supprt type: %s", types[i])
 				return
 			}
+			arguments = append(arguments, arg)
+			argumentsValue = append(argumentsValue, argValue)
+
 		}
 		var packed []byte
 		packed, err = arguments.Pack(argumentsValue...)
