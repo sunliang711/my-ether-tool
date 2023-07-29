@@ -4,24 +4,19 @@ Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	// "encoding/hex"
+	"encoding/hex"
 	"fmt"
+	"os"
+
 	"my-ether-tool/transaction"
 	"my-ether-tool/utils"
-	// "math/big"
-	// "my-ether-tool/transaction"
-	// "my-ether-tool/utils"
-	"os"
-	// "strings"
-	// "github.com/ethereum/go-ethereum/accounts/abi"
-	// "github.com/ethereum/go-ethereum/common"
-	// "github.com/ethereum/go-ethereum/crypto"
+
 	"github.com/spf13/cobra"
 )
 
 var (
-	abiStr  *string
-	abiArgs *[]string
+	abiStr20  *string
+	abiArgs20 *[]string
 )
 
 // abiencodeCmd represents the abiencode command
@@ -50,17 +45,17 @@ func init() {
 	// is called directly, e.g.:
 	// abiencodeCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
-	abiStr = abiencodeCmd.Flags().String("abi", "", "abi string, eg: transfer(address,uint256)")
-	abiArgs = abiencodeCmd.Flags().StringArray("args", nil, "arguments of abi(--args 0x... --args 200)")
+	abiStr20 = abiencodeCmd.Flags().String("abi", "", "abi string, eg: transfer(address,uint256)")
+	abiArgs20 = abiencodeCmd.Flags().StringArray("args", nil, "arguments of abi(--args 0x... --args 200)")
 
 }
 
 func abiEncode(cmd *cobra.Command, args []string) {
-	utils.ExitWithMsgWhen(*abiStr == "", "need --abi <abi_string>")
-	encoded, err := transaction.AbiEncode(*abiStr, *abiArgs)
+	utils.ExitWithMsgWhen(*abiStr20 == "", "need --abi <abi_string>\n")
+	encoded, err := transaction.AbiEncode(*abiStr20, *abiArgs20)
 	if err != nil {
 		fmt.Fprintf(os.Stdout, "error: %s\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("result: %s\n", encoded)
+	fmt.Printf("result: 0x%s\n", hex.EncodeToString(encoded))
 }

@@ -18,7 +18,9 @@ import (
 // @param from  from address of tx
 // @param to    to address of tx
 // @param value amount of eth to be transfered, unit: ETH
-// @param data  optional
+// @param data  optional   conflict with abi
+// @param abi  optional conflict with data
+// @param args  optional
 // @param gasLimit optional 为0时从rpc获取
 // @param nonce optional 为空时从rpc获取
 // @param chainID optional 为0时从rpc获取
@@ -28,7 +30,7 @@ import (
 // @param eip1559:
 // eip1559为true时，当gasTipCap 和 gasFeeCap都不为空时使用它们，否则从rpc获取这两个值
 // eip1559为false时，当gasPrice不为空时使用gasPrice，否则从rpc获取
-func BuildTransaction(rpc string, from string, to string, value string, data string, gasLimit uint64, nonce string, chainID int, gasPrice string, gasTipCap string, gasFeeCap string, eip1559 bool) (tx *types.Transaction, err error) {
+func BuildTransaction(rpc string, from string, to string, value string, data string, abi string, args []string, gasLimit uint64, nonce string, chainID int, gasPrice string, gasTipCap string, gasFeeCap string, eip1559 bool) (tx *types.Transaction, err error) {
 	// check params
 
 	var (
@@ -50,8 +52,20 @@ func BuildTransaction(rpc string, from string, to string, value string, data str
 		return
 	}
 
+	if data != "" && abi != "" {
+		err = errors.New("data conflict with abi,specify one")
+		return
+	}
+
 	if data != "" {
 		data0, err = hex.DecodeString(data)
+		if err != nil {
+			return
+		}
+	}
+
+	if abi != "" {
+		data0, err = AbiEncode(abi, args)
 		if err != nil {
 			return
 		}

@@ -27,19 +27,22 @@ var offsignCmd = &cobra.Command{
 }
 
 var (
-	rpc   *string
-	from  *string
-	to    *string
-	value *string
+	rpc80   *string
+	from80  *string
+	to80    *string
+	value80 *string
 
-	data     *string
-	gasLimit *uint64
-	nonce    *string
-	chainID  *int
-	gasPrice *string
-	tipCap   *string
-	feeCap   *string
-	eip1599  *bool
+	data80    *string
+	abi80     *string
+	abiArgs80 *[]string
+
+	gasLimit80 *uint64
+	nonce80    *string
+	chainID80  *int
+	gasPrice80 *string
+	tipCap80   *string
+	feeCap80   *string
+	eip159980  *bool
 )
 
 func init() {
@@ -55,28 +58,32 @@ func init() {
 	// is called directly, e.g.:
 	// offsignCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
-	rpc = offsignCmd.Flags().String("rpc", "", "rpc url")
-	from = offsignCmd.Flags().String("from", "", "from address")
-	to = offsignCmd.Flags().String("to", "", "receiver address")
-	value = offsignCmd.Flags().String("value", "0", "value (uint: eth)")
+	rpc80 = offsignCmd.Flags().String("rpc", "", "rpc url")
+	from80 = offsignCmd.Flags().String("from", "", "from address")
+	to80 = offsignCmd.Flags().String("to", "", "receiver address")
+	value80 = offsignCmd.Flags().String("value", "0", "value (uint: eth)")
 
-	data = offsignCmd.Flags().String("data", "", "data of transaction")
-	gasLimit = offsignCmd.Flags().Uint64("gasLimit", 0, "gas limit")
-	nonce = offsignCmd.Flags().String("nonce", "", "nonce")
-	chainID = offsignCmd.Flags().Int("chainID", 0, "chain id")
-	gasPrice = offsignCmd.Flags().String("gasPrice", "", "gas price(gwei)")
-	tipCap = offsignCmd.Flags().String("tipCap", "", "tipCap(gwei)")
-	feeCap = offsignCmd.Flags().String("feeCap", "", "feeCap(gwei)")
-	eip1599 = offsignCmd.Flags().Bool("eip1559", true, "eip1559 switch")
+	// data or abi + args
+	data80 = offsignCmd.Flags().String("data", "", "data of transaction, conflict with --abi")
+	abi80 = offsignCmd.Flags().String("abi", "", "abi string, eg: transfer(address,uint256), conflict with --data")
+	abiArgs80 = offsignCmd.Flags().StringArray("args", nil, "arguments of abi( --args 0x... --args 200)")
+
+	gasLimit80 = offsignCmd.Flags().Uint64("gasLimit", 0, "gas limit")
+	nonce80 = offsignCmd.Flags().String("nonce", "", "nonce")
+	chainID80 = offsignCmd.Flags().Int("chainID", 0, "chain id")
+	gasPrice80 = offsignCmd.Flags().String("gasPrice", "", "gas price(gwei)")
+	tipCap80 = offsignCmd.Flags().String("tipCap", "", "tipCap(gwei)")
+	feeCap80 = offsignCmd.Flags().String("feeCap", "", "feeCap(gwei)")
+	eip159980 = offsignCmd.Flags().Bool("eip1559", true, "eip1559 switch")
 }
 
 func offsign(cmd *cobra.Command, args []string) {
-	utils.ExitWithMsgWhen(*rpc == "", "need rpc\n")
-	utils.ExitWithMsgWhen(*from == "", "need from\n")
-	utils.ExitWithMsgWhen(*to == "", "need to\n")
+	utils.ExitWithMsgWhen(*rpc80 == "", "need rpc\n")
+	utils.ExitWithMsgWhen(*from80 == "", "need from\n")
+	utils.ExitWithMsgWhen(*to80 == "", "need to\n")
 	// utils.ExitWithMsgWhen(*value == "", "need value")
 
-	tx, err := transaction.BuildTransaction(*rpc, *from, *to, *value, *data, *gasLimit, *nonce, *chainID, *gasPrice, *tipCap, *feeCap, *eip1599)
+	tx, err := transaction.BuildTransaction(*rpc80, *from80, *to80, *value80, *data80, *abi80, *abiArgs80, *gasLimit80, *nonce80, *chainID80, *gasPrice80, *tipCap80, *feeCap80, *eip159980)
 	utils.ExitWhenError(err, "build transaction error: %s\n", err)
 
 	signer := types.NewCancunSigner(tx.ChainId())
@@ -119,7 +126,7 @@ func offsign(cmd *cobra.Command, args []string) {
 		Id:      "1",
 	}
 	// send txHex to rpc
-	httpClient := utils.NewHttpClient(*rpc, 3)
+	httpClient := utils.NewHttpClient(*rpc80, 3)
 	resp, err := httpClient.PostStruct(nil, &jsonRpcData)
 	utils.ExitWhenError(err, "Send raw transaction error: %s", err)
 	io.Copy(os.Stdout, resp.Body)

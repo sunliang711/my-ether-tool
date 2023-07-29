@@ -35,11 +35,11 @@ func init() {
 	}
 }
 
-func AbiEncode(abiStr string, abiArgs []string) (encoded string, err error) {
+func AbiEncode(abiStr string, abiArgs []string) (result []byte, err error) {
 	// selector is the first 4 bytes of hash of abiStr
 	selector := crypto.Keccak256Hash([]byte(abiStr)).Bytes()[:4]
 
-	result := selector
+	result = selector
 
 	fields := strings.FieldsFunc(abiStr, func(r rune) bool {
 		return r == '(' || r == ')'
@@ -103,5 +103,5 @@ func AbiEncode(abiStr string, abiArgs []string) (encoded string, err error) {
 
 	}
 
-	return "0x" + hex.EncodeToString(result), nil
+	return
 }
