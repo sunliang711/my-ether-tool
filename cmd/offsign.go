@@ -6,15 +6,17 @@ package cmd
 import (
 	"bufio"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 
 	"my-ether-tool/transaction"
+	ttypes "my-ether-tool/types"
 	"my-ether-tool/utils"
 
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 )
 
@@ -43,6 +45,8 @@ var (
 	tipCap80   *string
 	feeCap80   *string
 	eip159980  *bool
+
+	explorer80 *string
 )
 
 func init() {
@@ -75,6 +79,8 @@ func init() {
 	tipCap80 = offsignCmd.Flags().String("tipCap", "", "tipCap(gwei)")
 	feeCap80 = offsignCmd.Flags().String("feeCap", "", "feeCap(gwei)")
 	eip159980 = offsignCmd.Flags().Bool("eip1559", true, "eip1559 switch")
+
+	explorer80 = offsignCmd.Flags().String("explorer", "", "explorer url")
 }
 
 func offsign(cmd *cobra.Command, args []string) {
@@ -114,20 +120,30 @@ func offsign(cmd *cobra.Command, args []string) {
 	utils.ExitWhenError(err, "Marshal transaction to binary error: %s\n", err)
 
 	txHex := "0x" + hex.EncodeToString(txBytes)
-	jsonRpcData := struct {
-		JsonRpc string   `json:"jsonrpc"`
-		Method  string   `json:"method"`
-		Params  []string `json:"params"`
-		Id      string   `json:"id"`
-	}{
+	id, err := uuid.NewUUID()
+	utils.ExitWhenError(err, "create uuid error: %s\n", err)
+
+	jsonRpcData := ttypes.JsonRpcData{
 		JsonRpc: "2.0",
 		Method:  "eth_sendRawTransaction",
 		Params:  []string{txHex},
-		Id:      "1",
+		Id:      id.String(),
 	}
 	// send txHex to rpc
 	httpClient := utils.NewHttpClient(*rpc80, 3)
 	resp, err := httpClient.PostStruct(nil, &jsonRpcData)
 	utils.ExitWhenError(err, "Send raw transaction error: %s", err)
-	io.Copy(os.Stdout, resp.Body)
+
+	var jsonRpcResult ttypes.JsonRpcResult
+	err = json.NewDecoder(resp.Body).Decode(&jsonRpcResult)
+	utils.ExitWhenError(err, "decode json rpc result error: %s", err)
+
+	utils.ExitWithMsgWhen(jsonRpcResult.Id != id.String(), "json rpc id not match")
+
+	if *explorer80 != "" {
+		*explorer80 = strings.TrimSuffix(*explorer80, "/")
+		fmt.Printf("Transaction link: %s/tx/%s\n", *explorer80, jsonRpcResult.Result)
+	} else {
+		json.NewEncoder(os.Stdout).Encode(&jsonRpcResult)
+	}
 }
