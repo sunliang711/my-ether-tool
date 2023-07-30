@@ -2,9 +2,11 @@ package transaction
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
+	"my-ether-tool/utils"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -19,6 +21,13 @@ var (
 
 	bytesType  abi.Type
 	stringType abi.Type
+
+	addressSliceType abi.Type
+	bytes32SliceType abi.Type
+	uint256SliceType abi.Type
+
+	bytesSliceType  abi.Type
+	stringSliceType abi.Type
 )
 
 func init() {
@@ -47,6 +56,17 @@ func init() {
 		panic("create string failed")
 	}
 
+	addressSliceType, err = abi.NewType("address[]", "", nil)
+	utils.ExitWhenError(err, "create address[] failed")
+	uint256SliceType, err = abi.NewType("uint256[]", "", nil)
+	utils.ExitWhenError(err, "create uint256[] failed")
+	bytes32SliceType, err = abi.NewType("bytes32[]", "", nil)
+	utils.ExitWhenError(err, "create bytes32[] failed")
+	bytesSliceType, err = abi.NewType("bytes[]", "", nil)
+	utils.ExitWhenError(err, "create bytes[] failed")
+	stringSliceType, err = abi.NewType("string[]", "", nil)
+	utils.ExitWhenError(err, "create string[] failed")
+
 }
 
 func AbiEncode(abiStr string, abiArgs []string) (result []byte, err error) {
@@ -61,6 +81,8 @@ func AbiEncode(abiStr string, abiArgs []string) (result []byte, err error) {
 
 	arguments := abi.Arguments{}
 	argumentsValue := []any{}
+
+	var items []string
 
 	if len(fields) == 2 {
 		argTypes := fields[1]
@@ -80,6 +102,7 @@ func AbiEncode(abiStr string, abiArgs []string) (result []byte, err error) {
 			var argValue any
 
 			switch types[i] {
+			// Basic Types Begin
 			case "address":
 				fmt.Printf("> address type\n")
 				arg = abi.Argument{Type: addressType}
@@ -111,7 +134,80 @@ func AbiEncode(abiStr string, abiArgs []string) (result []byte, err error) {
 				fmt.Printf("> string type\n")
 				arg = abi.Argument{Type: stringType}
 				argValue = abiArg
-			// TODO: other types
+			// Basic Types End
+
+			// Slice Begin
+			// slice类型对应的abiArg是个json数组,数组中每个元素都是一个string类型，不管它原来是什么类型
+			case "address[]":
+				fmt.Printf("> address[] type\n")
+				items, err = DecodeJsonArray(abiArg)
+				utils.ExitWhenError(err, "decode address[] arguments error: %s\n", err)
+
+				addresses := []common.Address{}
+				for _, item := range items {
+					addresses = append(addresses, common.HexToAddress(item))
+				}
+
+				arg = abi.Argument{Type: addressSliceType}
+				argValue = addresses
+
+			case "uint256[]":
+				fmt.Printf("> uint256[] type\n")
+				items, err = DecodeJsonArray(abiArg)
+				utils.ExitWhenError(err, "decode address[] arguments error: %s\n", err)
+
+				uint256s := []*big.Int{}
+				for _, item := range items {
+					r, ok := new(big.Int).SetString(item, 10)
+					utils.ExitWithMsgWhen(!ok, "set uint256 error: %s", item)
+
+					uint256s = append(uint256s, r)
+				}
+				// fmt.Printf("uint256s: %v\n", uint256s)
+
+				arg = abi.Argument{Type: uint256SliceType}
+				argValue = uint256s
+
+			case "bytes32[]":
+				fmt.Printf("> bytes32[] type\n")
+				items, err = DecodeJsonArray(abiArg)
+				utils.ExitWhenError(err, "decode bytes32[] arguments error: %s\n", err)
+
+				bytes32s := []common.Hash{}
+
+				for _, item := range items {
+					bytes32s = append(bytes32s, common.HexToHash(item))
+				}
+				arg = abi.Argument{Type: bytes32SliceType}
+				argValue = bytes32s
+			case "bytes[]":
+				fmt.Printf("> bytes[] type\n")
+				items, err = DecodeJsonArray(abiArg)
+				utils.ExitWhenError(err, "decode bytes[] arguments error: %s\n", err)
+
+				var decoded []byte
+				byteses := [][]byte{}
+
+				for _, item := range items {
+					decoded, err = hex.DecodeString(item)
+					utils.ExitWhenError(err, "decode bytes[] error: %s", err)
+					byteses = append(byteses, decoded)
+				}
+
+				arg = abi.Argument{Type: bytesSliceType}
+				argValue = byteses
+			case "string[]":
+				fmt.Printf("> string[] type\n")
+				items, err = DecodeJsonArray(abiArg)
+				utils.ExitWhenError(err, "decode string[] arguments error: %s\n", err)
+
+				arg = abi.Argument{Type: stringSliceType}
+				argValue = items
+
+			// Slice End
+
+			// Tuple Begin
+			// Tuple End
 			default:
 				err = fmt.Errorf("not supprt type: %s", types[i])
 				return
@@ -130,5 +226,10 @@ func AbiEncode(abiStr string, abiArgs []string) (result []byte, err error) {
 
 	}
 
+	return
+}
+
+func DecodeJsonArray(data string) (items []string, err error) {
+	err = json.NewDecoder(strings.NewReader(data)).Decode(&items)
 	return
 }
