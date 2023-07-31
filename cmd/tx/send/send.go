@@ -118,6 +118,12 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 	fmt.Printf("%-20s:%s\n", "From", from)
 	fmt.Printf("%-20s:%s\n", "To", tx.To())
 	fmt.Printf("%-20s:%s %s\n", "Value", *value, net.Symbol)
+	if *abi != "" {
+		fmt.Printf("%-20s:%s\n", "abi", *abi)
+	}
+	if len(*abiArgs) != 0 {
+		fmt.Printf("%-20s:%v\n", "abi args", *abiArgs)
+	}
 	fmt.Printf("%-20s:%s\n", "Data", hex.EncodeToString(tx.Data()))
 	fmt.Printf("%-20s:%d\n", "Nonce", tx.Nonce())
 	fmt.Printf("%-20s:%s\n", "ChainId", tx.ChainId())
