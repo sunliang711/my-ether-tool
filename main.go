@@ -5,6 +5,7 @@ package main
 
 import (
 	"my-ether-tool/cmd"
+	"os"
 
 	_ "my-ether-tool/cmd/account"
 	_ "my-ether-tool/cmd/account/add"
@@ -32,8 +33,16 @@ import (
 	"my-ether-tool/database"
 )
 
+const (
+	defaultDbPath = "met.db"
+)
+
 func main() {
-	database.InitDB("error", "wallet.db")
+	dbPath := os.Getenv("met_db")
+	if dbPath == "" {
+		dbPath = defaultDbPath
+	}
+	database.InitDB("error", dbPath)
 
 	cmd.Execute()
 }
