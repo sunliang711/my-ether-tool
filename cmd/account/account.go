@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"my-ether-tool/cmd"
 	"my-ether-tool/database"
+	"my-ether-tool/types"
+	"my-ether-tool/utils"
 
 	"github.com/spf13/cobra"
 )
@@ -41,15 +43,10 @@ func init() {
 }
 
 func ShowAccount(account database.Account, insecure bool) {
-	fmt.Printf("Account: %s\n", account.Name)
-	fmt.Printf("Address: %s\n", "TODO")
-	fmt.Printf("Type: %s\n", account.Type)
-	fmt.Printf("Private key: %s\n", account.Value)
-	fmt.Printf("Mnemonic: %s\n", account.Value)
-	fmt.Printf("PathFormat: %s\n", account.PathFormat)
-	fmt.Printf("Passphrase: %s\n", account.Passphrase)
-	fmt.Printf("Current: %v\n", account.Current)
-	fmt.Printf("Current Index: %v\n", account.CurrentIndex)
+	fullAccount, err := types.AccountToDetails(&account)
+	utils.ExitWhenError(err, "calculate address error: %s", err)
+
+	fmt.Printf("%s", fullAccount.String(insecure))
 	fmt.Println()
 
 }

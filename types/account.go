@@ -15,7 +15,7 @@ const (
 	DefaultHDPath = "m/44'/60'/0'/0/x"
 )
 
-type FullAccount struct {
+type AccountDetails struct {
 	database.Account
 
 	PrivateKey string
@@ -23,7 +23,33 @@ type FullAccount struct {
 	Path       string
 }
 
-func AccountToFullAccount(account *database.Account) (*FullAccount, error) {
+func (f AccountDetails) String(insecure bool) string {
+	msg := fmt.Sprintf("Account Name: %s\n", f.Name)
+	msg += fmt.Sprintf("Account Type: %s\n", f.Type)
+	switch f.Type {
+	case MnemonicType:
+		if insecure {
+			msg += fmt.Sprintf("Mnemonic: %s\n", f.Value)
+			msg += fmt.Sprintf("Passphrase: %s\n", f.Passphrase)
+			msg += fmt.Sprintf("Private key: %s\n", f.PrivateKey)
+		}
+		msg += fmt.Sprintf("Path Format: %s\n", f.PathFormat)
+		msg += fmt.Sprintf("Path: %s\n", f.Path)
+	case PrivateKeyType:
+		if insecure {
+			msg += fmt.Sprintf("Private Key: %s\n", f.Value)
+		}
+	default:
+		return "invalid account type"
+	}
+	msg += fmt.Sprintf("Address: %s\n", f.Address)
+	msg += fmt.Sprintf("Is Current: %v\n", f.Current)
+	msg += fmt.Sprintf("Current Index: %d\n", f.CurrentIndex)
+
+	return msg
+}
+
+func AccountToDetails(account *database.Account) (*AccountDetails, error) {
 	var privateKey string
 	var address string
 	var path string
@@ -52,7 +78,7 @@ func AccountToFullAccount(account *database.Account) (*FullAccount, error) {
 		return nil, errors.New("invalid account type")
 	}
 
-	fullAccount := FullAccount{
+	fullAccount := AccountDetails{
 		Account:    *account,
 		PrivateKey: privateKey,
 		Address:    address,

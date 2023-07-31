@@ -12,6 +12,7 @@ import (
 
 	btcutil "github.com/FactomProject/btcutilecc"
 
+	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 
@@ -229,4 +230,10 @@ func DerivesByPath(key *bip32.Key, path string, start, count uint) (keys []*bip3
 		paths = append(paths, path)
 	}
 	return
+}
+
+func CheckHdPath(path string) error {
+	path = strings.Replace(path, "x", "0", 1)
+	_, err := accounts.ParseDerivationPath(path)
+	return err
 }

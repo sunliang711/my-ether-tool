@@ -68,7 +68,7 @@ func createWallet(cmd *cobra.Command, args []string) {
 		utils.ExitWithMsgWhen(true, "invalid account type, use 'mnemonic' or 'private key'\n")
 	}
 
-	fullAccount, err := types.AccountToFullAccount(newAccount)
+	fullAccount, err := types.AccountToDetails(newAccount)
 	utils.ExitWhenError(err, "calculate address error: %s", err)
 
 	if *name != "" {

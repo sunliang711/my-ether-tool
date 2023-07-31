@@ -101,3 +101,17 @@ func CurrentNetwork() (network Network, err error) {
 	}
 	return
 }
+
+func QueryNetworkOrCurrent(name string) (*Network, error) {
+	var (
+		net Network
+		err error
+	)
+	if name != "" {
+		net, err = QueryNetwork(name)
+		return &net, err
+	}
+	net, err = CurrentNetwork()
+
+	return &net, err
+}

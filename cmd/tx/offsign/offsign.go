@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"my-ether-tool/cmd/tx"
+	"my-ether-tool/database"
 	"my-ether-tool/transaction"
 	ttypes "my-ether-tool/types"
 	"my-ether-tool/utils"
@@ -30,7 +31,8 @@ var offsignCmd = &cobra.Command{
 }
 
 var (
-	rpc   *string // TODO: 替换成内置network: --network
+	network *string
+	// rpc   *string
 	from  *string
 	to    *string
 	value *string
@@ -43,12 +45,12 @@ var (
 	chainID *int
 
 	gasLimit *uint64
-	eip1599  *bool
+	eip1559  *bool
 	gasPrice *string
 	tipCap   *string
 	feeCap   *string
 
-	explorer *string
+	// explorer *string
 )
 
 func init() {
@@ -64,7 +66,8 @@ func init() {
 	// is called directly, e.g.:
 	// offsignCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
-	rpc = offsignCmd.Flags().String("rpc", "", "rpc url")
+	// rpc = offsignCmd.Flags().String("rpc", "", "rpc url")
+	network = offsignCmd.Flags().String("network", "", "network name")
 	from = offsignCmd.Flags().String("from", "", "from address")
 	to = offsignCmd.Flags().String("to", "", "receiver address")
 	value = offsignCmd.Flags().String("value", "0", "value (uint: eth)")
@@ -80,18 +83,26 @@ func init() {
 	gasPrice = offsignCmd.Flags().String("gasPrice", "", "gas price(gwei)")
 	tipCap = offsignCmd.Flags().String("tipCap", "", "tipCap(gwei)")
 	feeCap = offsignCmd.Flags().String("feeCap", "", "feeCap(gwei)")
-	eip1599 = offsignCmd.Flags().Bool("eip1559", true, "eip1559 switch")
+	eip1559 = offsignCmd.Flags().Bool("eip1559", true, "eip1559 switch")
 
-	explorer = offsignCmd.Flags().String("explorer", "", "explorer url")
+	// explorer = offsignCmd.Flags().String("explorer", "", "explorer url")
 }
 
 func offsign(cmd *cobra.Command, args []string) {
-	utils.ExitWithMsgWhen(*rpc == "", "need rpc\n")
+	// utils.ExitWithMsgWhen(*rpc == "", "need rpc\n")
 	utils.ExitWithMsgWhen(*from == "", "need from\n")
 	utils.ExitWithMsgWhen(*to == "", "need to\n")
 	// utils.ExitWithMsgWhen(*value == "", "need value")
 
-	tx, err := transaction.BuildTransaction(*rpc, *from, *to, *value, *data, *abi, *abiArgs, *gasLimit, *nonce, *chainID, *gasPrice, *tipCap, *feeCap, *eip1599)
+	net, err := database.QueryNetworkOrCurrent(*network)
+	utils.ExitWhenError(err, "load network error: %s\n", err)
+	rpc := net.Rpc
+
+	fmt.Printf("environment info:\n")
+	fmt.Printf("%-20s:%s\n", "network name", net.Name)
+	fmt.Printf("%-20s:%s\n", "network rpc", net.Rpc)
+
+	tx, err := transaction.BuildTransaction(rpc, *from, *to, *value, *data, *abi, *abiArgs, *gasLimit, *nonce, *chainID, *gasPrice, *tipCap, *feeCap, *eip1559)
 	utils.ExitWhenError(err, "build transaction error: %s\n", err)
 
 	signer := types.NewCancunSigner(tx.ChainId())
@@ -132,7 +143,7 @@ func offsign(cmd *cobra.Command, args []string) {
 		Id:      id.String(),
 	}
 	// send txHex to rpc
-	httpClient := utils.NewHttpClient(*rpc, 3)
+	httpClient := utils.NewHttpClient(rpc, 3)
 	resp, err := httpClient.PostStruct(nil, &jsonRpcData)
 	utils.ExitWhenError(err, "Send raw transaction error: %s", err)
 
@@ -142,9 +153,10 @@ func offsign(cmd *cobra.Command, args []string) {
 
 	utils.ExitWithMsgWhen(jsonRpcResult.Id != id.String(), "json rpc id not match")
 
-	if *explorer != "" {
-		*explorer = strings.TrimSuffix(*explorer, "/")
-		fmt.Printf("Transaction link: %s/tx/%s\n", *explorer, jsonRpcResult.Result)
+	explorer := net.Explorer
+	if explorer != "" {
+		explorer = strings.TrimSuffix(explorer, "/")
+		fmt.Printf("Transaction link: %s/tx/%s\n", explorer, jsonRpcResult.Result)
 	} else {
 		json.NewEncoder(os.Stdout).Encode(&jsonRpcResult)
 	}

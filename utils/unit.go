@@ -50,6 +50,15 @@ func StringMul(a string, b string) (result *big.Int, err error) {
 
 }
 
+func Wei2Gwei(wei string) (string, error) {
+	r, err := StringDiv(wei, "1000000000")
+	if err != nil {
+		return "", err
+	}
+
+	return r.String(), nil
+}
+
 // 存储在string中的大浮点数相除
 func StringDiv(a string, b string) (result *big.Float, err error) {
 	af, ok := big.NewFloat(0).SetString(a)

@@ -19,7 +19,13 @@ type Account struct {
 	// 是否是当前账号
 	Current bool
 	// 当Current为true 并且 Type 是MnemonicType时，所对应的助记词的index
-	CurrentIndex int
+	CurrentIndex uint
+}
+
+func (account Account) SwitchTo(newIndex uint) Account {
+	newAccount := account
+	newAccount.CurrentIndex = newIndex
+	return newAccount
 }
 
 const (
@@ -109,4 +115,19 @@ func CurrentAccount() (account Account, err error) {
 		err = fmt.Errorf("no such account")
 	}
 	return
+}
+
+func QueryAccountOrCurrent(name string, index uint) (*Account, error) {
+	var (
+		acc Account
+		err error
+	)
+	if name != "" {
+		acc, err = QueryAccount(name)
+		acc2 := acc.SwitchTo(index)
+		return &acc2, err
+	}
+	acc, err = CurrentAccount()
+
+	return &acc, err
 }

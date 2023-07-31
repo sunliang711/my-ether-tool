@@ -7,7 +7,7 @@ import (
 
 func ExitWithMsgWhen(condition bool, format string, args ...any) {
 	if condition {
-		fmt.Fprintf(os.Stdout, format, args...)
+		fmt.Fprintf(os.Stderr, format, args...)
 		os.Exit(1)
 	}
 }

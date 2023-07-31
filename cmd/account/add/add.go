@@ -1,8 +1,11 @@
 package add
 
 import (
+	"fmt"
+
 	"my-ether-tool/cmd/account"
 	"my-ether-tool/database"
+	"my-ether-tool/hd"
 	"my-ether-tool/types"
 	"my-ether-tool/utils"
 
@@ -10,10 +13,11 @@ import (
 )
 
 var addCmd = &cobra.Command{
-	Use:   "add",
-	Short: "add account",
-	Long:  "add account",
-	Run:   addAccount,
+	Use:        "add",
+	ArgAliases: []string{"import"},
+	Short:      "add account",
+	Long:       "add account",
+	Run:        addAccount,
 }
 
 var (
@@ -38,10 +42,15 @@ func addAccount(cmd *cobra.Command, args []string) {
 	var err error
 
 	utils.ExitWithMsgWhen(*name == "", "need name\n")
-	utils.ExitWithMsgWhen(*value == "", "need value\n")
+	// utils.ExitWithMsgWhen(*value == "", "need value\n")
 
 	if *accountType != types.MnemonicType && *accountType != types.PrivateKeyType {
 		utils.ExitWithMsgWhen(true, "invalid account type, use 'mnemonic' or 'private key'\n")
+	}
+
+	if *value == "" {
+		*value, err = utils.ReadSecret(fmt.Sprintf("Enter %s: ", *accountType))
+		utils.ExitWhenError(err, "Read user input error: %s\n", err)
 	}
 
 	if *accountType == types.MnemonicType {
@@ -49,8 +58,9 @@ func addAccount(cmd *cobra.Command, args []string) {
 			*pathFormat = types.DefaultHDPath
 		}
 
-		// TODO: check hd path
-		// accounts.ParseDerivationPath(*pathFormat)
+		// check hd path
+		err = hd.CheckHdPath(*pathFormat)
+		utils.ExitWhenError(err, "invalid hd path: %s\n", err)
 
 	}
 
