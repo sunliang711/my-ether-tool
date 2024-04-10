@@ -9,11 +9,22 @@ import (
 
 	_ "my-ether-tool/cmd/account"
 	_ "my-ether-tool/cmd/account/add"
-	_ "my-ether-tool/cmd/account/create"
 	_ "my-ether-tool/cmd/account/current"
 	_ "my-ether-tool/cmd/account/list"
+	_ "my-ether-tool/cmd/account/new"
 	_ "my-ether-tool/cmd/account/rm"
 	_ "my-ether-tool/cmd/account/switch"
+
+	_ "my-ether-tool/cmd/erc20"
+	_ "my-ether-tool/cmd/erc20/allowance"
+	_ "my-ether-tool/cmd/erc20/approve"
+	_ "my-ether-tool/cmd/erc20/balanceOf"
+	_ "my-ether-tool/cmd/erc20/decimals"
+	_ "my-ether-tool/cmd/erc20/name"
+	_ "my-ether-tool/cmd/erc20/symbol"
+	_ "my-ether-tool/cmd/erc20/totalSupply"
+	_ "my-ether-tool/cmd/erc20/transfer"
+	_ "my-ether-tool/cmd/erc20/transferFrom"
 
 	_ "my-ether-tool/cmd/codec"
 	_ "my-ether-tool/cmd/codec/decode"

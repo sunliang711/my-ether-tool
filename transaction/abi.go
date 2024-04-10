@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 	"my-ether-tool/utils"
+	"regexp"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -232,4 +233,15 @@ func AbiEncode(abiStr string, abiArgs []string) (result []byte, err error) {
 func DecodeJsonArray(data string) (items []string, err error) {
 	err = json.NewDecoder(strings.NewReader(data)).Decode(&items)
 	return
+}
+
+// abiStr: (uint256,address,...,bytes)
+func AbiDecode(abiStr string, encoded string) {
+	re := regexp.MustCompile(`\(([^, ]+(,[^, ]+)*)\)`)
+	parts := re.FindStringSubmatch(abiStr)
+	fmt.Printf("parts: %v len: %v\n", parts, len(parts))
+	if len(parts) != 3 {
+		return
+	}
+
 }

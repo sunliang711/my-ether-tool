@@ -23,7 +23,7 @@ type AccountDetails struct {
 	Path       string
 }
 
-func (f AccountDetails) String(insecure bool) string {
+func (f AccountDetails) AsString(insecure bool) string {
 	msg := fmt.Sprintf("Account Name: %s\n", f.Name)
 	msg += fmt.Sprintf("Account Type: %s\n", f.Type)
 	switch f.Type {

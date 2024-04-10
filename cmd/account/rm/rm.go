@@ -28,6 +28,6 @@ func removeAccount(cmd *cobra.Command, args []string) {
 	utils.ExitWithMsgWhen(*name == "", "need name\n")
 
 	err := database.RemoveAccount(*name)
-	utils.ExitWhenError(err, "remove network error: %s", err)
+	utils.ExitWhenError(err, "remove account error: %s\n", err)
 
 }

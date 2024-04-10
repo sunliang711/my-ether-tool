@@ -46,7 +46,7 @@ func ShowAccount(account database.Account, insecure bool) {
 	fullAccount, err := types.AccountToDetails(&account)
 	utils.ExitWhenError(err, "calculate address error: %s", err)
 
-	fmt.Printf("%s", fullAccount.String(insecure))
+	fmt.Printf("%s", fullAccount.AsString(insecure))
 	fmt.Println()
 
 }

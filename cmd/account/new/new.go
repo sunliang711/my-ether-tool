@@ -1,4 +1,4 @@
-package create
+package new
 
 import (
 	"fmt"
@@ -13,9 +13,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var createCmd = &cobra.Command{
-	Use:     "create",
-	Aliases: []string{"new"},
+var newCmd = &cobra.Command{
+	Use:     "new",
+	Aliases: []string{"create"},
 	Short:   "create a new account",
 	Long:    "create a new account",
 	Run:     createWallet,
@@ -29,12 +29,12 @@ var (
 )
 
 func init() {
-	account.AccountCmd.AddCommand(createCmd)
+	account.AccountCmd.AddCommand(newCmd)
 
-	name = createCmd.Flags().String("name", "", "account name, leave it empty for temp use")
-	accountType = createCmd.Flags().String("type", types.MnemonicType, "account type, available type: 'mnemonic' or 'private key' ")
-	words = createCmd.Flags().Uint8("words", 12, "mnemonic words count when type is mnemonic")
-	passphrase = createCmd.Flags().String("passphrase", "", "passphrase when type is mnemonic")
+	name = newCmd.Flags().String("name", "", "account name, leave it empty for temp use")
+	accountType = newCmd.Flags().String("type", types.MnemonicType, "account type, available type: 'mnemonic' or 'private key' ")
+	words = newCmd.Flags().Uint8("words", 12, "mnemonic words count when type is mnemonic")
+	passphrase = newCmd.Flags().String("passphrase", "", "passphrase when type is mnemonic")
 
 }
 
@@ -76,22 +76,15 @@ func createWallet(cmd *cobra.Command, args []string) {
 		err := database.AddAccount(newAccount)
 		utils.ExitWhenError(err, "add account to db error: %s\n", err)
 
-		// show address
-		fmt.Printf("Created Account Info:\n")
-		fmt.Printf("Account Type: %s\n", *accountType)
-		fmt.Printf("Address: %s\n", fullAccount.Address)
+		// query
+		newAccount, err := database.QueryAccount(*name)
+		utils.ExitWhenError(err, "query account by name: %s error: %s\n", *name, err)
 
-	} else {
-		// show with mnemonic or private key
-		fmt.Printf("Created Account Info:\n")
-		fmt.Printf("Account Type: %s\n", *accountType)
-		if *accountType == types.MnemonicType {
-			fmt.Printf("Mnemonic: %s\n", newAccount.Value)
-			fmt.Printf("Path: %s\n", fullAccount.Path)
-		} else {
-			fmt.Printf("Private Key: %s\n", newAccount.Value)
-		}
-		fmt.Printf("Address: %s\n", fullAccount.Address)
+		// format
+		fullAccount, err = types.AccountToDetails(&newAccount)
+		utils.ExitWhenError(err, "calculate address error: %s", err)
 	}
+
+	fmt.Printf("%s\n", fullAccount.AsString(*name == ""))
 
 }

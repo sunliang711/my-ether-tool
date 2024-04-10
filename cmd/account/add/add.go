@@ -12,12 +12,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var addCmd = &cobra.Command{
-	Use:        "add",
-	ArgAliases: []string{"import"},
-	Short:      "add account",
-	Long:       "add account",
-	Run:        addAccount,
+var importCmd = &cobra.Command{
+	Use:        "import",
+	ArgAliases: []string{"im"},
+	Short:      "import account",
+	Long:       "import account",
+	Run:        importAccount,
 }
 
 var (
@@ -29,16 +29,16 @@ var (
 )
 
 func init() {
-	account.AccountCmd.AddCommand(addCmd)
+	account.AccountCmd.AddCommand(importCmd)
 
-	name = addCmd.Flags().String("name", "", "account name")
-	accountType = addCmd.Flags().String("type", types.MnemonicType, "account type: 'mnemonic' or 'private key'")
-	value = addCmd.Flags().String("value", "", "mnemonic or private key")
-	pathFormat = addCmd.Flags().String("path-format", "", "bip32 path format,eg m/44'/60'/0'/0/x (x is placeholder)")
-	passphrase = addCmd.Flags().String("passphrase", "", "bip32 passphrase")
+	name = importCmd.Flags().String("name", "", "account name")
+	accountType = importCmd.Flags().String("type", types.MnemonicType, "account type: 'mnemonic' or 'private key'")
+	value = importCmd.Flags().String("value", "", "mnemonic or private key")
+	pathFormat = importCmd.Flags().String("path-format", "", "bip32 path format,eg m/44'/60'/0'/0/x (x is placeholder)")
+	passphrase = importCmd.Flags().String("passphrase", "", "bip32 passphrase")
 }
 
-func addAccount(cmd *cobra.Command, args []string) {
+func importAccount(cmd *cobra.Command, args []string) {
 	var err error
 
 	utils.ExitWithMsgWhen(*name == "", "need name\n")

@@ -2,7 +2,11 @@ package utils
 
 import (
 	"errors"
+	"fmt"
 	"math/big"
+	"strconv"
+
+	"github.com/shopspring/decimal"
 )
 
 const (
@@ -76,5 +80,41 @@ func StringDiv(a string, b string) (result *big.Float, err error) {
 	result = af.Quo(af, bf)
 
 	return
+
+}
+
+func Erc20AmountToHuman(amount string, decimals string) (string, error) {
+	d, err := strconv.ParseInt(decimals, 10, 32)
+	if err != nil {
+		return "", fmt.Errorf("parse decimals error: %w", err)
+	}
+
+	base := decimal.New(1, int32(d))
+
+	amountDecimal, err := decimal.NewFromString(amount)
+	if err != nil {
+		return "", fmt.Errorf("invalid original amount: %w", err)
+	}
+
+	humanAmount := amountDecimal.Div(base)
+
+	return humanAmount.String(), nil
+}
+
+func Erc20AmountFromHuman(humanAmount string, decimals string) (string, error) {
+	d, err := strconv.ParseInt(decimals, 10, 32)
+	if err != nil {
+		return "", fmt.Errorf("parse decimals error: %w", err)
+	}
+
+	base := decimal.New(1, int32(d))
+
+	humanAmountDecimal, err := decimal.NewFromString(humanAmount)
+	if err != nil {
+		return "", fmt.Errorf("invalid human amount: %w", err)
+	}
+
+	amount := humanAmountDecimal.Mul(base)
+	return amount.String(), nil
 
 }
