@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"math/big"
 	"my-ether-tool/utils"
 	"strconv"
@@ -30,7 +31,7 @@ import (
 // @param eip1559:
 // eip1559为true时，当gasTipCap 和 gasFeeCap都不为空时使用它们，否则从rpc获取这两个值
 // eip1559为false时，当gasPrice不为空时使用gasPrice，否则从rpc获取
-func BuildTransaction(rpc string, from string, to string, value string, data string, abi string, args []string, gasLimit uint64, nonce string, chainID int, gasPrice string, gasTipCap string, gasFeeCap string, eip1559 bool) (tx *types.Transaction, err error) {
+func BuildTransaction(ctx context.Context, rpc string, from string, to string, value string, data string, abi string, args []string, gasLimit uint64, nonce string, chainID int, gasPrice string, gasTipCap string, gasFeeCap string, eip1559 bool, sendAll bool) (tx *types.Transaction, newValue *big.Int, err error) {
 	// check params
 
 	var (
@@ -47,7 +48,7 @@ func BuildTransaction(rpc string, from string, to string, value string, data str
 	fromAddress := common.HexToAddress(from)
 	toAddress := common.HexToAddress(to)
 
-	value1, err := utils.ParseUnits(value, "eth")
+	value1, err := utils.ParseUnits(value, utils.UnitEth)
 	if err != nil {
 		return
 	}
@@ -55,6 +56,11 @@ func BuildTransaction(rpc string, from string, to string, value string, data str
 	if data != "" && abi != "" {
 		err = errors.New("data conflict with abi,specify one")
 		return
+	}
+
+	if sendAll {
+		eip1559 = false
+		fmt.Printf("sendAll conflict with eip1559, disable eip1559\n")
 	}
 
 	if data != "" {
@@ -76,9 +82,10 @@ func BuildTransaction(rpc string, from string, to string, value string, data str
 		return
 	}
 	defer client.Close()
+
 	// if nonce == ""; get by rpc
 	if nonce == "" {
-		nonce0, err = client.PendingNonceAt(context.Background(), fromAddress)
+		nonce0, err = client.PendingNonceAt(ctx, fromAddress)
 		if err != nil {
 			return
 		}
@@ -91,7 +98,7 @@ func BuildTransaction(rpc string, from string, to string, value string, data str
 
 	// if chainID == 0; get by rpc
 	if chainID == 0 {
-		chainID0, err = client.ChainID(context.Background())
+		chainID0, err = client.ChainID(ctx)
 		if err != nil {
 			return
 		}
@@ -101,7 +108,7 @@ func BuildTransaction(rpc string, from string, to string, value string, data str
 
 	// if gasLimit == 0; estimateGas
 	if gasLimit == 0 {
-		gasLimit, err = client.EstimateGas(context.Background(), ethereum.CallMsg{
+		gasLimit, err = client.EstimateGas(ctx, ethereum.CallMsg{
 			From:  fromAddress,
 			To:    &toAddress,
 			Value: value1,
@@ -140,12 +147,12 @@ func BuildTransaction(rpc string, from string, to string, value string, data str
 		} else {
 			// get by rpc
 			var gasPrice0 *big.Int
-			gasPrice0, err = client.SuggestGasPrice(context.Background())
+			gasPrice0, err = client.SuggestGasPrice(ctx)
 			if err != nil {
 				return
 			}
 
-			tipCap, err = client.SuggestGasTipCap(context.Background())
+			tipCap, err = client.SuggestGasTipCap(ctx)
 			if err != nil {
 				return
 			}
@@ -168,7 +175,7 @@ func BuildTransaction(rpc string, from string, to string, value string, data str
 		// use gasPrice
 		var price *big.Int
 		if gasPrice == "" {
-			price, err = client.SuggestGasPrice(context.Background())
+			price, err = client.SuggestGasPrice(ctx)
 			if err != nil {
 				return
 			}
@@ -180,6 +187,27 @@ func BuildTransaction(rpc string, from string, to string, value string, data str
 			}
 			price = price.Mul(price, gWei)
 		}
+
+		// 重新计算value
+		if sendAll {
+			// 查询当前balance
+			currentBalance, err := client.BalanceAt(ctx, common.HexToAddress(from), nil)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			// 计算手续费 = 21000 * gasPrice
+			txFee := big.NewInt(OnlyTransferGas)
+			txFee.Mul(txFee, price)
+			fmt.Printf("sendAll txFee: %s\n", txFee.String())
+
+			// 剩下的value为所有待发送value
+			value1 = currentBalance.Sub(currentBalance, txFee)
+			fmt.Printf("sendAll value: %s\n", value1.String())
+
+			newValue = value1
+		}
+
 		tx = types.NewTx(&types.AccessListTx{
 			ChainID:  chainID0,
 			Nonce:    nonce0,
@@ -194,3 +222,7 @@ func BuildTransaction(rpc string, from string, to string, value string, data str
 
 	return
 }
+
+const (
+	OnlyTransferGas = 21000
+)

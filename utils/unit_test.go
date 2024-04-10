@@ -4,13 +4,13 @@ import "testing"
 
 // go test -count=1 -v  my-ether-tool/utils -run 'TestParseUnits'
 func TestParseUnits(t *testing.T) {
-	r1, err := ParseUnits("1.2", "eth")
+	r1, err := ParseUnits("1.2", UnitEth)
 	if err != nil {
 		t.Logf("error: %s\n", err)
 	}
 	t.Logf("r1: %s\n", r1)
 
-	r2, err := ParseUnits("3.14", "gwei")
+	r2, err := ParseUnits("3.14", UnitGwei)
 	if err != nil {
 		t.Logf("error: %s\n", err)
 	}

@@ -14,16 +14,62 @@ const (
 	gwei = "1_000_000_000"
 )
 
+type Unit int8
+
+const (
+	UnitEth Unit = iota
+	UnitGwei
+)
+
+// FormatUnits ("1000000000000000000","eth") ->  1
+// FormatUnits ("1000000000","gwei") -> 1
+func FormatUnits(value string, unit Unit) (string, error) {
+	var base decimal.Decimal
+	switch unit {
+	case UnitEth:
+		base = decimal.New(1, 18)
+	case UnitGwei:
+		base = decimal.New(1, 9)
+	default:
+		return "", errors.New("invalid unit")
+	}
+
+	valueDecimal, err := decimal.NewFromString(value)
+	if err != nil {
+		return "", fmt.Errorf("invalid value: %w", err)
+	}
+
+	result := valueDecimal.Div(base)
+	return result.String(), nil
+
+}
+
 // ParseUnits ("1.2","eth") -> wei
 // ParseUnits ("1.2","gwei") -> wei
-func ParseUnits(value string, unit string) (ret *big.Int, err error) {
+func ParseUnits(value string, unit Unit) (ret *big.Int, err error) {
+	var base decimal.Decimal
 	switch unit {
-	case "eth":
-		ret, err = StringMul(value, eth)
-	case "gwei":
-		ret, err = StringMul(value, gwei)
+	case UnitEth:
+		base = decimal.New(1, 18)
+	case UnitGwei:
+		base = decimal.New(1, 9)
 	default:
+		return nil, errors.New("invalid unit")
 	}
+
+	valueDecimal, err := decimal.NewFromString(value)
+	if err != nil {
+		return nil, fmt.Errorf("invalid value: %w", err)
+	}
+
+	result := valueDecimal.Mul(base)
+
+	ret = big.NewInt(0)
+	ret, ok := ret.SetString(result.String(), 10)
+	if !ok {
+		return nil, fmt.Errorf("set result: %v failed", result.String())
+	}
+
 	return
 }
 

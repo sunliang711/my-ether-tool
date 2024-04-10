@@ -5,11 +5,13 @@ package tx
 
 import (
 	"bufio"
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"my-ether-tool/cmd/tx"
 	"my-ether-tool/database"
@@ -102,7 +104,10 @@ func offsign(cmd *cobra.Command, args []string) {
 	fmt.Printf("%-20s:%s\n", "network name", net.Name)
 	fmt.Printf("%-20s:%s\n", "network rpc", net.Rpc)
 
-	tx, err := transaction.BuildTransaction(rpc, *from, *to, *value, *data, *abi, *abiArgs, *gasLimit, *nonce, *chainID, *gasPrice, *tipCap, *feeCap, *eip1559)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
+	tx, _, err := transaction.BuildTransaction(ctx, rpc, *from, *to, *value, *data, *abi, *abiArgs, *gasLimit, *nonce, *chainID, *gasPrice, *tipCap, *feeCap, *eip1559, false)
 	utils.ExitWhenError(err, "build transaction error: %s\n", err)
 
 	signer := types.NewCancunSigner(tx.ChainId())

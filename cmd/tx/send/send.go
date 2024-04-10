@@ -1,6 +1,7 @@
 package tx
 
 import (
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"my-ether-tool/utils"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -31,6 +33,8 @@ var (
 
 	to    *string
 	value *string
+	// 忽略value，发送所有ether
+	all *bool
 
 	data    *string
 	abi     *string
@@ -58,6 +62,7 @@ func init() {
 
 	to = sendCmd.Flags().String("to", "", "transaction receiver")
 	value = sendCmd.Flags().String("value", "0", "value (uint: eth)")
+	all = sendCmd.Flags().Bool("all", false, "send all ether")
 
 	// data or abi + args
 	data = sendCmd.Flags().String("data", "", "data of transaction, conflict with --abi")
@@ -101,8 +106,11 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 	}
 	fmt.Printf("%-20s:%s\n", "address", details.Address)
 
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+
 	// build tx
-	tx, err := transaction.BuildTransaction(rpc, from, *to, *value, *data, *abi, *abiArgs, *gasLimit, *nonce, *chainID, *gasPrice, *tipCap, *feeCap, *eip1559)
+	tx, newValue, err := transaction.BuildTransaction(ctx, rpc, from, *to, *value, *data, *abi, *abiArgs, *gasLimit, *nonce, *chainID, *gasPrice, *tipCap, *feeCap, *eip1559, *all)
 	utils.ExitWhenError(err, "build tx error: %s\n", err)
 
 	signer := types.LatestSignerForChainID(tx.ChainId())
@@ -117,7 +125,14 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 	fmt.Printf("Transaction to be sent:\n")
 	fmt.Printf("%-20s:%s\n", "From", from)
 	fmt.Printf("%-20s:%s\n", "To", tx.To())
-	fmt.Printf("%-20s:%s %s\n", "Value", *value, net.Symbol)
+
+	realValue := *value
+	if *all {
+		realValue = newValue.String()
+	}
+	valueStr, err := utils.FormatUnits(realValue, utils.UnitEth)
+	fmt.Printf("%-20s:%s %s\n", "Value", valueStr, net.Symbol)
+
 	if *abi != "" {
 		fmt.Printf("%-20s:%s\n", "abi", *abi)
 	}
