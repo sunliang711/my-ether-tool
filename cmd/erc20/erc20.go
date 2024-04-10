@@ -18,6 +18,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
@@ -56,11 +57,16 @@ const (
 
 // 读erc20
 func ReadErc20(ctx context.Context, contract string, networkName string, funcType Erc20ReadFuncType, arg1 string, arg2 string) (string, error) {
+	log := log.With().Str("func", "ReadErc20").Logger()
+
+	log.Info().Msgf("query network: %v", networkName)
 	net, err := database.QueryNetworkOrCurrent(networkName)
 	if err != nil {
 		return "", fmt.Errorf("query network error: %w", err)
 	}
+	log.Debug().Msgf("network info: %v", net)
 
+	log.Info().Msgf("dial rpc: %v", net.Rpc)
 	client, err := ethclient.DialContext(ctx, net.Rpc)
 	if err != nil {
 		return "", fmt.Errorf("dial rpc error: %w", err)
@@ -71,6 +77,7 @@ func ReadErc20(ctx context.Context, contract string, networkName string, funcTyp
 
 	switch funcType {
 	case Erc20Name:
+		log.Info().Msg("call erc20 name")
 		tokenName, err := erc20Instance.Name(&bind.CallOpts{Context: ctx})
 		if err != nil {
 			return "", nil
@@ -79,6 +86,7 @@ func ReadErc20(ctx context.Context, contract string, networkName string, funcTyp
 		return tokenName, nil
 
 	case Erc20Symbol:
+		log.Info().Msg("call erc20 symbol")
 		symbol, err := erc20Instance.Symbol(&bind.CallOpts{Context: ctx})
 		if err != nil {
 			return "", err
@@ -87,6 +95,7 @@ func ReadErc20(ctx context.Context, contract string, networkName string, funcTyp
 		return symbol, nil
 
 	case Erc20Decimals:
+		log.Info().Msg("call erc20 decimals")
 		decimals, err := erc20Instance.Decimals(&bind.CallOpts{Context: ctx})
 		if err != nil {
 			return "", err
@@ -95,6 +104,7 @@ func ReadErc20(ctx context.Context, contract string, networkName string, funcTyp
 		return fmt.Sprintf("%v", decimals), nil
 
 	case Erc20TotalSupply:
+		log.Info().Msg("call erc20 totalSupply")
 		totalSupply, err := erc20Instance.TotalSupply(&bind.CallOpts{Context: ctx})
 		if err != nil {
 			return "", err
@@ -103,6 +113,7 @@ func ReadErc20(ctx context.Context, contract string, networkName string, funcTyp
 		return fmt.Sprintf("%s", totalSupply.String()), nil
 
 	case Erc20BalanceOf:
+		log.Info().Msg("call erc20 balanceOf")
 		if arg1 == "" {
 			return "", errors.New("missing address")
 		}
@@ -115,6 +126,7 @@ func ReadErc20(ctx context.Context, contract string, networkName string, funcTyp
 		return fmt.Sprintf("%s", balance.String()), nil
 
 	case Erc20Allowance:
+		log.Info().Msg("call erc20 allowance")
 		if arg1 == "" {
 			return "", errors.New("missing owner address")
 		}
@@ -146,17 +158,22 @@ const (
 
 // 写erc20
 func WriteErc20(ctx context.Context, contract string, networkName string, accountName string, accountIndex uint, funcType Erc20WritFuncType, arg1, arg2, arg3 string) (string, error) {
+	log := log.With().Str("func", "ReadErc20").Logger()
 
+	log.Info().Msgf("query network: %v", networkName)
 	net, err := database.QueryNetworkOrCurrent(networkName)
 	if err != nil {
 		return "", fmt.Errorf("query network error: %w", err)
 	}
+	log.Debug().Msgf("network info: %v", net)
 
+	log.Info().Msgf("dial rpc: %v", net.Rpc)
 	client, err := ethclient.DialContext(ctx, net.Rpc)
 	if err != nil {
 		return "", fmt.Errorf("dial rpc error: %w", err)
 	}
 
+	log.Info().Msgf("query account: %v with index: %v", accountName, accountIndex)
 	account, err := database.QueryAccountOrCurrent(accountName, accountIndex)
 	if err != nil {
 		return "", fmt.Errorf("query account error: %w", err)
@@ -166,6 +183,7 @@ func WriteErc20(ctx context.Context, contract string, networkName string, accoun
 	if err != nil {
 		return "", fmt.Errorf("get account details error: %w", err)
 	}
+	log.Info().Msgf("account info: name: %v address: %v", accountDetails.Name, accountDetails.Address)
 
 	pk := strings.TrimPrefix(accountDetails.PrivateKey, "0x")
 	privateKey, err := crypto.HexToECDSA(pk)
@@ -173,6 +191,7 @@ func WriteErc20(ctx context.Context, contract string, networkName string, accoun
 		return "", fmt.Errorf("create private key error: %w", err)
 	}
 
+	log.Info().Msg("query chain id")
 	chainId, err := client.ChainID(ctx)
 	if err != nil {
 		return "", fmt.Errorf("get chain id error: %w", err)
@@ -199,6 +218,7 @@ func WriteErc20(ctx context.Context, contract string, networkName string, accoun
 		amount := big.NewInt(0)
 		amount.SetString(arg2, 10)
 
+		log.Info().Msg("call erc20 transfer")
 		tx, err := erc20Instance.Transfer(transactor, to, amount)
 		if err != nil {
 			return "", err
@@ -222,6 +242,7 @@ func WriteErc20(ctx context.Context, contract string, networkName string, accoun
 		amount := big.NewInt(0)
 		amount.SetString(arg3, 10)
 
+		log.Info().Msg("call erc20 transferFrom")
 		tx, err := erc20Instance.TransferFrom(transactor, from, to, amount)
 		if err != nil {
 			return "", err
@@ -241,6 +262,7 @@ func WriteErc20(ctx context.Context, contract string, networkName string, accoun
 		amount := big.NewInt(0)
 		amount.SetString(arg2, 10)
 
+		log.Info().Msg("call erc20 approve")
 		tx, err := erc20Instance.Approve(transactor, spender, amount)
 		if err != nil {
 			return "", err
