@@ -68,7 +68,7 @@ func transferToken(cmd *cobra.Command, args []string) {
 	utils.ExitWhenError(err, "convert amount error: %v", err)
 
 	hash, err := erc20.WriteErc20(ctx, *contract, *network, *account, *accountIndex, erc20.Erc20TransferFrom, *from, *to, realAmount)
-	utils.ExitWhenError(err, "transfer token error: %v\n", err)
+	utils.ExitWhenError(err, "transfer token error: %v", err)
 
 	fmt.Printf("tx hash: %s\n", hash)
 

@@ -62,7 +62,7 @@ func approveToken(cmd *cobra.Command, args []string) {
 	utils.ExitWhenError(err, "convert amount error: %v", err)
 
 	hash, err := erc20.WriteErc20(ctx, *contract, *network, *account, *accountIndex, erc20.Erc20Approve, *spender, realAmount, "")
-	utils.ExitWhenError(err, "approve token error: %v\n", err)
+	utils.ExitWhenError(err, "approve token error: %v", err)
 
 	fmt.Printf("tx hash: %s\n", hash)
 

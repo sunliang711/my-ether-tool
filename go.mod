@@ -7,7 +7,6 @@ require (
 	github.com/ethereum/go-ethereum v1.12.0
 	github.com/google/uuid v1.3.0
 	github.com/shopspring/decimal v1.3.1
-	github.com/shopsprint/decimal v1.3.3
 	github.com/spf13/cobra v1.7.0
 	github.com/tyler-smith/go-bip32 v1.0.0
 	github.com/tyler-smith/go-bip39 v1.1.0
