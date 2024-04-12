@@ -15,6 +15,10 @@ import (
 	_ "my-ether-tool/cmd/account/rm"
 	_ "my-ether-tool/cmd/account/switch"
 
+	_ "my-ether-tool/cmd/contract"
+	_ "my-ether-tool/cmd/contract/read"
+	_ "my-ether-tool/cmd/contract/write"
+
 	_ "my-ether-tool/cmd/erc20"
 	_ "my-ether-tool/cmd/erc20/allowance"
 	_ "my-ether-tool/cmd/erc20/approve"

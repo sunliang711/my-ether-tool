@@ -110,7 +110,7 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 	defer cancel()
 
 	// build tx
-	tx, newValue, err := transaction.BuildTransaction(ctx, rpc, from, *to, *value, *data, *abi, *abiArgs, *gasLimit, *nonce, *chainID, *gasPrice, *tipCap, *feeCap, *eip1559, *all)
+	tx, err := transaction.BuildTransaction(ctx, rpc, from, *to, value, *data, *abi, *abiArgs, *gasLimit, *nonce, *chainID, *gasPrice, *tipCap, *feeCap, *eip1559, *all)
 	utils.ExitWhenError(err, "build tx error: %s\n", err)
 
 	signer := types.LatestSignerForChainID(tx.ChainId())
@@ -126,12 +126,7 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 	fmt.Printf("%-20s:%s\n", "From", from)
 	fmt.Printf("%-20s:%s\n", "To", tx.To())
 
-	realValue := *value
-	if *all {
-		realValue = newValue.String()
-	}
-	valueStr, err := utils.FormatUnits(realValue, utils.UnitEth)
-	fmt.Printf("%-20s:%s %s\n", "Value", valueStr, net.Symbol)
+	fmt.Printf("%-20s:%s %s\n", "Value", *value, net.Symbol)
 
 	if *abi != "" {
 		fmt.Printf("%-20s:%s\n", "abi", *abi)

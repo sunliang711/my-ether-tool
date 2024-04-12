@@ -31,7 +31,7 @@ import (
 // @param eip1559:
 // eip1559为true时，当gasTipCap 和 gasFeeCap都不为空时使用它们，否则从rpc获取这两个值
 // eip1559为false时，当gasPrice不为空时使用gasPrice，否则从rpc获取
-func BuildTransaction(ctx context.Context, rpc string, from string, to string, value string, data string, abi string, args []string, gasLimit uint64, nonce string, chainID int, gasPrice string, gasTipCap string, gasFeeCap string, eip1559 bool, sendAll bool) (tx *types.Transaction, newValue *big.Int, err error) {
+func BuildTransaction(ctx context.Context, rpc string, from string, to string, value *string, data string, abi string, args []string, gasLimit uint64, nonce string, chainID int, gasPrice string, gasTipCap string, gasFeeCap string, eip1559 bool, sendAll bool) (tx *types.Transaction /*newValue *big.Int,*/, err error) {
 	// check params
 
 	var (
@@ -48,7 +48,7 @@ func BuildTransaction(ctx context.Context, rpc string, from string, to string, v
 	fromAddress := common.HexToAddress(from)
 	toAddress := common.HexToAddress(to)
 
-	value1, err := utils.ParseUnits(value, utils.UnitEth)
+	value1, err := utils.ParseUnits(*value, utils.UnitEth)
 	if err != nil {
 		return
 	}
@@ -87,12 +87,12 @@ func BuildTransaction(ctx context.Context, rpc string, from string, to string, v
 	if nonce == "" {
 		nonce0, err = client.PendingNonceAt(ctx, fromAddress)
 		if err != nil {
-			return
+			return nil, fmt.Errorf("query nonce error: %w", err)
 		}
 	} else {
 		nonce0, err = strconv.ParseUint(nonce, 10, 64)
 		if err != nil {
-			return
+			return nil, fmt.Errorf("parse nonce error: %w", err)
 		}
 	}
 
@@ -100,7 +100,7 @@ func BuildTransaction(ctx context.Context, rpc string, from string, to string, v
 	if chainID == 0 {
 		chainID0, err = client.ChainID(ctx)
 		if err != nil {
-			return
+			return nil, fmt.Errorf("get chain id error: %w", err)
 		}
 	} else {
 		chainID0 = big.NewInt(int64(chainID))
@@ -115,7 +115,7 @@ func BuildTransaction(ctx context.Context, rpc string, from string, to string, v
 			Data:  data0,
 		})
 		if err != nil {
-			return
+			return nil, fmt.Errorf("estimate gas error: %w", err)
 		}
 	}
 
@@ -146,18 +146,25 @@ func BuildTransaction(ctx context.Context, rpc string, from string, to string, v
 
 		} else {
 			// get by rpc
-			var gasPrice0 *big.Int
-			gasPrice0, err = client.SuggestGasPrice(ctx)
-			if err != nil {
-				return
-			}
+			// var gasPrice0 *big.Int
+			// gasPrice0, err = client.SuggestGasPrice(ctx)
+			// if err != nil {
+			// 	return
+			// }
 
 			tipCap, err = client.SuggestGasTipCap(ctx)
 			if err != nil {
 				return
 			}
 
-			baseFee := new(big.Int).Sub(gasPrice0, tipCap)
+			header, err := client.HeaderByNumber(ctx, nil)
+			if err != nil {
+				return nil, fmt.Errorf("get latest block header error: %w", err)
+			}
+
+			baseFee := header.BaseFee
+
+			// baseFee := new(big.Int).Sub(gasPrice0, tipCap)
 			feeCap = new(big.Int).Add(tipCap, new(big.Int).Mul(baseFee, big.NewInt(2)))
 		}
 		tx = types.NewTx(&types.DynamicFeeTx{
@@ -193,7 +200,7 @@ func BuildTransaction(ctx context.Context, rpc string, from string, to string, v
 			// 查询当前balance
 			currentBalance, err := client.BalanceAt(ctx, common.HexToAddress(from), nil)
 			if err != nil {
-				return nil, nil, err
+				return nil, fmt.Errorf("query balance error: %w", err)
 			}
 
 			// 计算手续费 = 21000 * gasPrice
@@ -205,7 +212,12 @@ func BuildTransaction(ctx context.Context, rpc string, from string, to string, v
 			value1 = currentBalance.Sub(currentBalance, txFee)
 			fmt.Printf("sendAll value: %s\n", value1.String())
 
-			newValue = value1
+			// newValue = value1
+			vv, err := utils.FormatUnits(value1.String(), utils.UnitEth)
+			if err != nil {
+				return nil, fmt.Errorf("format value error: %w", err)
+			}
+			*value = vv
 		}
 
 		tx = types.NewTx(&types.AccessListTx{
