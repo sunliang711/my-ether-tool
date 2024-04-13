@@ -40,7 +40,7 @@ func BuildTransaction(ctx context.Context, rpc string, from string, to string, v
 		chainID0 *big.Int = big.NewInt(0)
 		// value0   *big.Float = big.NewFloat(0)
 		data0 []byte
-		ok    bool
+		// ok    bool
 	)
 	from = strings.TrimPrefix(from, "0x")
 	to = strings.TrimPrefix(to, "0x")
@@ -123,7 +123,7 @@ func BuildTransaction(ctx context.Context, rpc string, from string, to string, v
 
 	// signer := types.NewCancunSigner(chainID0)
 
-	gWei := big.NewInt(1_000_000_000)
+	// gWei := big.NewInt(1_000_000_000)
 
 	if eip1559 {
 		// use gasTipCap gasFeeCap
@@ -133,18 +133,16 @@ func BuildTransaction(ctx context.Context, rpc string, from string, to string, v
 		if gasTipCap != "" && gasFeeCap != "" {
 			// baseFee=eth_gasPrice - maxPriorityFeePerGas
 			// 最大费用，maxPriorityFeePerGas + 2 * base_fee
-			tipCap, ok = new(big.Int).SetString(gasTipCap, 10)
-			if !ok {
-				err = errors.New("set gas tip cap failed")
-				return
+
+			tipCap, err = utils.ParseUnits(gasTipCap, utils.UnitGwei)
+			if err != nil {
+				return nil, fmt.Errorf("parse gasTipCap: %v error: %w", gasTipCap, err)
 			}
-			tipCap = tipCap.Mul(tipCap, gWei)
-			feeCap, ok = new(big.Int).SetString(gasFeeCap, 10)
-			if !ok {
-				err = errors.New("set gas fee cap failed")
-				return
+
+			feeCap, err = utils.ParseUnits(gasFeeCap, utils.UnitGwei)
+			if err != nil {
+				return nil, fmt.Errorf("parse gasFeeCap: %v error: %w", gasFeeCap, err)
 			}
-			feeCap = feeCap.Mul(feeCap, gWei)
 
 		} else {
 
@@ -196,12 +194,11 @@ func BuildTransaction(ctx context.Context, rpc string, from string, to string, v
 				return
 			}
 		} else {
-			price, ok = new(big.Int).SetString(gasPrice, 10)
-			if !ok {
-				err = errors.New("set gasPrice failed")
-				return
+			price, err = utils.ParseUnits(gasPrice, utils.UnitGwei)
+			if err != nil {
+				return nil, fmt.Errorf("parse gasPrice: %v error: %w", gasPrice, err)
 			}
-			price = price.Mul(price, gWei)
+
 		}
 
 		if gasRatio != "" {
@@ -397,68 +394,38 @@ func GetTxParams(ctx context.Context, client *ethclient.Client, fromAddress, con
 		logger.Debug().Msgf("after gas limit ratio: %v, gas limit: %v", gasLimitRatio, txParam.GasLimit)
 	}
 
-	// // GasLimit
-	// if gasLimitRatio != "" {
-	// 	logger.Debug().Msgf("parse gasLimitRatio")
-	// 	limitRatio, err := decimal.NewFromString(gasLimitRatio)
-	// 	if err != nil {
-	// 		return nil, fmt.Errorf("parse gasLimitRatio error: %w", err)
-	// 	}
-	// 	logger.Debug().Msgf("gasLimitRatio: %v", limitRatio.String())
-
-	// 	logger.Debug().Msgf("estimate gas for scale")
-	// 	msg := ethereum.CallMsg{
-	// 		From: from,
-	// 		To:   &contract,
-	// 		// GasPrice: gasPrice,
-	// 		Value: txParam.Value,
-	// 		Data:  input,
-	// 	}
-	// 	estimatedGas, err := client.EstimateGas(ctx, msg)
-	// 	if err != nil {
-	// 		return nil, fmt.Errorf("estimate gas error: %v", err)
-	// 	}
-
-	// 	// estigatedGas * gasLimitRatio
-	// 	gasLimit := decimal.NewFromInt(int64(estimatedGas)).Mul(limitRatio)
-	// 	txParam.GasLimit = gasLimit.BigInt().Uint64()
-	// 	logger.Debug().Msgf("after gas limit ratio: %v, gas limit: %v", gasLimitRatio, txParam.GasLimit)
-	// } else {
-	// 	logger.Debug().Msgf("no gasLimitRatio")
-	// 	if gasLimit != "" {
-	// 		l, err := strconv.ParseUint(gasLimit, 10, 64)
-	// 		if err != nil {
-	// 			return nil, fmt.Errorf("parse gasLimit: %v error: %w", gasLimit, err)
-	// 		}
-	// 		txParam.GasLimit = l
-	// 	} else {
-	// 		logger.Debug().Msgf("estimate gas for direct use")
-	// 		msg := ethereum.CallMsg{
-	// 			From: from,
-	// 			To:   &contract,
-	// 			// GasPrice: gasPrice,
-	// 			Value: txParam.Value,
-	// 			Data:  input,
-	// 		}
-	// 		estimatedGas, err := client.EstimateGas(ctx, msg)
-	// 		if err != nil {
-	// 			return nil, fmt.Errorf("estimate gas error: %v", err)
-	// 		}
-	// 		txParam.GasLimit = estimatedGas
-	// 	}
-	// }
-
 	// Gas
 	if eip1559 {
 		logger.Debug().Msgf("eip1559 on, ignore gasPrice")
 
-		if gasRatio != "" {
-			logger.Debug().Msgf("parse gasRatio")
-			gRatio, err := decimal.NewFromString(gasRatio)
-			if err != nil {
-				return nil, fmt.Errorf("parse gasRatio: %v error: %w", gasRatio, err)
-			}
+		if gasTipCap != "" {
+			logger.Debug().Msgf("parse gasTipCap")
 
+			tip, err := utils.ParseUnits(gasTipCap, utils.UnitGwei)
+			if err != nil {
+				return nil, fmt.Errorf("parse gasTipCap: %v error: %w", gasTipCap, err)
+			}
+			txParam.GasTipCap = tip
+
+		} else {
+			logger.Debug().Msgf("query gasTipCap")
+			tipCap, err := client.SuggestGasTipCap(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("query gas tip cap error: %w", err)
+			}
+			txParam.GasTipCap = tipCap
+		}
+
+		if gasFeeCap != "" {
+			logger.Debug().Msgf("parse gasFeeCap")
+
+			fee, err := utils.ParseUnits(gasFeeCap, utils.UnitGwei)
+			if err != nil {
+				return nil, fmt.Errorf("parse gasFeeCap: %v error: %w", gasFeeCap, err)
+			}
+			txParam.GasFeeCap = fee
+		} else {
+			logger.Debug().Msgf("query gasFeeCap")
 			tipCap, err := client.SuggestGasTipCap(ctx)
 			if err != nil {
 				return nil, fmt.Errorf("query gas tip cap error: %w", err)
@@ -473,66 +440,49 @@ func GetTxParams(ctx context.Context, client *ethclient.Client, fromAddress, con
 			// feeCap = tipCap + 2 * baseFee
 			feeCap := new(big.Int).Add(tipCap, new(big.Int).Mul(baseFee, big.NewInt(2)))
 
-			logger.Debug().Msgf("before gas ratio, tip cap: %v fee cap: %v", tipCap.String(), feeCap.String())
+			txParam.GasFeeCap = feeCap
+		}
 
-			tip := decimal.NewFromBigInt(tipCap, 0).Mul(gRatio)
-			fee := decimal.NewFromBigInt(feeCap, 0).Mul(gRatio)
+		if gasRatio != "" {
+			logger.Debug().Msgf("parse gasRatio")
+			gRatio, err := decimal.NewFromString(gasRatio)
+			if err != nil {
+				return nil, fmt.Errorf("parse gasRatio: %v error: %w", gasRatio, err)
+			}
+
+			logger.Debug().Msgf("before gas ratio, tip cap: %v fee cap: %v", txParam.GasTipCap.String(), txParam.GasFeeCap.String())
+
+			tip := decimal.NewFromBigInt(txParam.GasTipCap, 0).Mul(gRatio)
+			fee := decimal.NewFromBigInt(txParam.GasFeeCap, 0).Mul(gRatio)
 
 			logger.Debug().Msgf("after gas ratio: %v, tip cap: %v fee cap: %v", gasRatio, tip.String(), fee.String())
 
 			txParam.GasTipCap = tip.BigInt()
 			txParam.GasFeeCap = fee.BigInt()
 
-		} else {
-			logger.Debug().Msgf("no gasRatio")
-
-			if gasTipCap != "" {
-				logger.Debug().Msgf("parse gasTipCap")
-				tip, err := decimal.NewFromString(gasTipCap)
-				if err != nil {
-					return nil, fmt.Errorf("parse gasTipCap: %v error: %w", gasTipCap, err)
-				}
-				txParam.GasTipCap = tip.BigInt()
-			} else {
-				logger.Debug().Msgf("query gasTipCap")
-				tipCap, err := client.SuggestGasTipCap(ctx)
-				if err != nil {
-					return nil, fmt.Errorf("query gas tip cap error: %w", err)
-				}
-				txParam.GasTipCap = tipCap
-			}
-
-			if gasFeeCap != "" {
-				logger.Debug().Msgf("parse gasFeeCap")
-				fee, err := decimal.NewFromString(gasFeeCap)
-				if err != nil {
-					return nil, fmt.Errorf("parse gasFeeCap: %v error: %w", gasFeeCap, err)
-				}
-				txParam.GasFeeCap = fee.BigInt()
-			} else {
-				logger.Debug().Msgf("query gasFeeCap")
-				tipCap, err := client.SuggestGasTipCap(ctx)
-				if err != nil {
-					return nil, fmt.Errorf("query gas tip cap error: %w", err)
-				}
-
-				header, err := client.HeaderByNumber(ctx, nil)
-				if err != nil {
-					return nil, fmt.Errorf("get latest block header error: %w", err)
-				}
-
-				baseFee := header.BaseFee
-				// feeCap = tipCap + 2 * baseFee
-				feeCap := new(big.Int).Add(tipCap, new(big.Int).Mul(baseFee, big.NewInt(2)))
-
-				txParam.GasFeeCap = feeCap
-			}
-
 		}
 
 	} else {
-		logger.Debug().Msgf("eip1559 off, ignore gasFeeCap and gasTipCap")
 		// legacy
+		logger.Debug().Msgf("eip1559 off, ignore gasFeeCap and gasTipCap")
+
+		if gasPrice != "" {
+			logger.Debug().Msgf("parse gasPrice")
+			gp, err := utils.ParseUnits(gasPrice, utils.UnitGwei)
+			if err != nil {
+				return nil, fmt.Errorf("parse gasPrice: %v error: %w", gasPrice, err)
+			}
+			txParam.GasPrice = gp
+		} else {
+			logger.Debug().Msgf("query gasPrice")
+			gp, err := client.SuggestGasPrice(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("query gas price error: %v", err)
+			}
+			txParam.GasPrice = gp
+		}
+		logger.Debug().Msgf("gasPrice: %v", txParam.GasPrice.String())
+
 		if gasRatio != "" {
 			logger.Debug().Msgf("parse gasRatio")
 			gRatio, err := decimal.NewFromString(gasRatio)
@@ -541,35 +491,11 @@ func GetTxParams(ctx context.Context, client *ethclient.Client, fromAddress, con
 			}
 			logger.Debug().Msgf("gas ratio: %v", gRatio.String())
 
-			gp, err := client.SuggestGasPrice(ctx)
-			if err != nil {
-				return nil, fmt.Errorf("query gas price error: %v", err)
-			}
-
-			logger.Debug().Msgf("before gas ratio, gas price: %v", gp.String())
-			gasPrice := decimal.NewFromBigInt(gp, 0).Mul(gRatio)
-			logger.Debug().Msgf("after gas ratio, gas price: %v", gasPrice.BigInt().String())
+			logger.Debug().Msgf("before gas ratio: %v, gas price: %v", gasRatio, txParam.GasPrice.String())
+			gasPrice := decimal.NewFromBigInt(txParam.GasPrice, 0).Mul(gRatio)
+			logger.Debug().Msgf("after gas ratio: %v, gas price: %v", gasRatio, gasPrice.BigInt().String())
 
 			txParam.GasPrice = gasPrice.BigInt()
-
-		} else {
-			logger.Debug().Msgf("no gasRatio")
-
-			if gasPrice != "" {
-				logger.Debug().Msgf("parse gasPrice")
-				gp, err := decimal.NewFromString(gasPrice)
-				if err != nil {
-					return nil, fmt.Errorf("parse gas price: %v error: %w", gasPrice, err)
-				}
-				txParam.GasPrice = gp.BigInt()
-			} else {
-				logger.Debug().Msgf("query gasPrice")
-				gp, err := client.SuggestGasPrice(ctx)
-				if err != nil {
-					return nil, fmt.Errorf("query gas price error: %v", err)
-				}
-				txParam.GasPrice = gp
-			}
 
 		}
 

@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"met/cmd/tx"
+	"met/consts"
 	database "met/database"
 	transaction "met/transaction"
 	ttypes "met/types"
@@ -105,7 +106,7 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 	logger.Info().Msgf("account name: %s", details.Name)
 	logger.Info().Msgf("address: %s", details.Address)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*consts.DefaultTimeout)
 	defer cancel()
 
 	// build tx
@@ -166,7 +167,7 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 	logger.Info().Msgf("send tx")
 	err = client.SendTransaction(ctx, tx)
 	if err != nil {
-		fmt.Printf("send tx error: %v\n", err)
+		logger.Fatal().Msgf("send transaction error: %v", err)
 		return
 	}
 

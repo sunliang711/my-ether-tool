@@ -6,6 +6,7 @@ package write
 import (
 	"context"
 	"met/cmd/contract"
+	"met/consts"
 	utils "met/utils"
 	"time"
 
@@ -60,8 +61,8 @@ func init() {
 	gasLimit = writeCmd.Flags().String("gasLimit", "", "custom gasLimit")
 	gasRatio = writeCmd.Flags().String("gasRatio", "", "gasRatio")
 	gasPrice = writeCmd.Flags().String("gasPrice", "", "custom gasPrice")
-	gasFeeCap = writeCmd.Flags().String("gasFeeCap", "", "custom gasFeeCap")
-	gasTipCap = writeCmd.Flags().String("gasTipCap", "", "custom gasTipCap")
+	gasFeeCap = writeCmd.Flags().String("feeCap", "", "custom gasFeeCap")
+	gasTipCap = writeCmd.Flags().String("tipCap", "", "custom gasTipCap")
 
 	eip1559 = writeCmd.Flags().Bool("eip1559", true, "eip1559 (use --eip1559=false to disable)")
 	noconfirm = writeCmd.Flags().Bool("noconfirm", false, "noconfirm")
@@ -81,7 +82,7 @@ func writeContract(cmd *cobra.Command, args []string) {
 	utils.ExitWhen(logger, contractAddress == "", "missing contract")
 	utils.ExitWhen(logger, abi == "", "missing abi")
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*consts.DefaultTimeout)
 	defer cancel()
 
 	err = contract.WriteContract(ctx, network, contractAddress, abi, method, *account, *nonce, *value, *gasLimitRatio, *gasLimit, *gasRatio, *gasPrice, *gasFeeCap, *gasTipCap, *accountIndex, *eip1559, *noconfirm, abiArgs...)

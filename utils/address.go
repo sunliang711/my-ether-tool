@@ -18,6 +18,7 @@ func ShowReceipt(logger zerolog.Logger, receipt *types.Receipt) {
 	logger.Info().Msgf("[Receipt] Block Hash: %v", receipt.BlockHash)
 	logger.Info().Msgf("[Receipt] Contract Address: %v", receipt.ContractAddress)
 	logger.Info().Msgf("[Receipt] Gas Used: %v", receipt.GasUsed)
+	logger.Info().Msgf("[Receipt] Gas Price: %v", receipt.EffectiveGasPrice)
 	logger.Info().Msgf("[Receipt] Status: %v", receipt.Status)
 	logger.Info().Msgf("[Receipt] Tx Index: %v", receipt.TransactionIndex)
 	logger.Info().Msgf("[Receipt] Type: %v", receipt.Type)

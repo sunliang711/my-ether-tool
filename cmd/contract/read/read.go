@@ -6,6 +6,7 @@ package read
 import (
 	"context"
 	"met/cmd/contract"
+	"met/consts"
 	utils "met/utils"
 	"time"
 
@@ -65,7 +66,7 @@ func readContract(cmd *cobra.Command, args []string) {
 	utils.ExitWhen(logger, contractAddress == "", "missing contract")
 	utils.ExitWhen(logger, abi == "", "missing abi")
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*consts.DefaultTimeout)
 	defer cancel()
 
 	outputs, err := contract.ReadContract(ctx, network, contractAddress, abi, method, abiArgs...)

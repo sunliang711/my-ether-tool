@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"met/cmd/erc20"
+	"met/consts"
 	utils "met/utils"
 	"time"
 
@@ -41,7 +42,7 @@ func getBalance(cmd *cobra.Command, args []string) {
 	utils.ExitWithMsgWhen(*contract == "", "need contract address")
 	utils.ExitWithMsgWhen(*owner == "", "need owner address")
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*consts.DefaultTimeout)
 	defer cancel()
 
 	// read balance

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"met/cmd/erc20"
+	"met/consts"
 	utils "met/utils"
 	"time"
 
@@ -38,7 +39,7 @@ func init() {
 func getTotalSupply(cmd *cobra.Command, args []string) {
 	utils.ExitWithMsgWhen(*contract == "", "need contract address")
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*consts.DefaultTimeout)
 	defer cancel()
 
 	// read totalSupply
