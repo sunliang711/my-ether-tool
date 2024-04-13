@@ -43,7 +43,7 @@ func init() {
 	// txCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	ContractCmd.PersistentFlags().String("network", "", "network name")
 	ContractCmd.PersistentFlags().String("contract", "", "contract address")
-	ContractCmd.PersistentFlags().String("abi", "", "abi json string")
+	ContractCmd.PersistentFlags().String("abi", "", "abi json string(use --abi \"$(cat <FILE>)\" to specify file)")
 	ContractCmd.PersistentFlags().String("method", "", "method name")
 	ContractCmd.PersistentFlags().StringArray("args", nil, "arguments of abi (--args xx1 --args xx2 ...)")
 }
