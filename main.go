@@ -5,7 +5,7 @@ package main
 
 import (
 	"my-ether-tool/cmd"
-	"os"
+	"my-ether-tool/setup"
 
 	_ "my-ether-tool/cmd/account"
 	_ "my-ether-tool/cmd/account/add"
@@ -44,20 +44,10 @@ import (
 	_ "my-ether-tool/cmd/tx"
 	_ "my-ether-tool/cmd/tx/offsign"
 	_ "my-ether-tool/cmd/tx/send"
-
-	"my-ether-tool/database"
-)
-
-const (
-	defaultDbPath = "met.db"
 )
 
 func main() {
-	dbPath := os.Getenv("met_db")
-	if dbPath == "" {
-		dbPath = defaultDbPath
-	}
-	database.InitDB("error", dbPath)
+	setup.SetupDb()
 
 	cmd.Execute()
 }
