@@ -358,16 +358,16 @@ func GetTxParams(ctx context.Context, client *ethclient.Client, fromAddress, con
 		txParam.Nonce = big.NewInt(int64(n))
 	}
 
-	// GasLimit
-	if gasLimitRatio != "" {
-		logger.Debug().Msgf("parse gasLimitRatio")
-		limitRatio, err := decimal.NewFromString(gasLimitRatio)
+	if gasLimit != "" {
+		logger.Debug().Msgf("parse gasLimit: %v", gasLimit)
+		l, err := strconv.ParseUint(gasLimit, 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("parse gasLimitRatio error: %w", err)
+			return nil, fmt.Errorf("parse gasLimit: %v error: %w", gasLimit, err)
 		}
-		logger.Debug().Msgf("gasLimitRatio: %v", limitRatio.String())
 
-		logger.Debug().Msgf("estimate gas for scale")
+		txParam.GasLimit = l
+	} else {
+		logger.Debug().Msgf("estimate gas")
 		msg := ethereum.CallMsg{
 			From: from,
 			To:   &contract,
@@ -380,38 +380,78 @@ func GetTxParams(ctx context.Context, client *ethclient.Client, fromAddress, con
 			return nil, fmt.Errorf("estimate gas error: %v", err)
 		}
 
-		// estigatedGas * gasLimitRatio
-		gasLimit := decimal.NewFromInt(int64(estimatedGas)).Mul(limitRatio)
+		txParam.GasLimit = estimatedGas
+	}
+
+	if gasLimitRatio != "" {
+		logger.Debug().Msgf("parse gasLimitRatio")
+		limitRatio, err := decimal.NewFromString(gasLimitRatio)
+		if err != nil {
+			return nil, fmt.Errorf("parse gasLimitRatio error: %w", err)
+		}
+		logger.Debug().Msgf("gasLimitRatio: %v", limitRatio.String())
+
+		logger.Debug().Msgf("before gas limit ratio: %v, gas limit: %v", gasLimitRatio, txParam.GasLimit)
+		gasLimit := decimal.NewFromInt(int64(txParam.GasLimit)).Mul(limitRatio)
 		txParam.GasLimit = gasLimit.BigInt().Uint64()
 		logger.Debug().Msgf("after gas limit ratio: %v, gas limit: %v", gasLimitRatio, txParam.GasLimit)
-	} else {
-		logger.Debug().Msgf("no gasLimitRatio")
-		if gasLimit != "" {
-			l, err := strconv.ParseUint(gasLimit, 10, 64)
-			if err != nil {
-				return nil, fmt.Errorf("parse gasLimit: %v error: %w", gasLimit, err)
-			}
-			txParam.GasLimit = l
-		} else {
-			logger.Debug().Msgf("estimate gas for direct use")
-			msg := ethereum.CallMsg{
-				From: from,
-				To:   &contract,
-				// GasPrice: gasPrice,
-				Value: txParam.Value,
-				Data:  input,
-			}
-			estimatedGas, err := client.EstimateGas(ctx, msg)
-			if err != nil {
-				return nil, fmt.Errorf("estimate gas error: %v", err)
-			}
-			txParam.GasLimit = estimatedGas
-		}
 	}
+
+	// // GasLimit
+	// if gasLimitRatio != "" {
+	// 	logger.Debug().Msgf("parse gasLimitRatio")
+	// 	limitRatio, err := decimal.NewFromString(gasLimitRatio)
+	// 	if err != nil {
+	// 		return nil, fmt.Errorf("parse gasLimitRatio error: %w", err)
+	// 	}
+	// 	logger.Debug().Msgf("gasLimitRatio: %v", limitRatio.String())
+
+	// 	logger.Debug().Msgf("estimate gas for scale")
+	// 	msg := ethereum.CallMsg{
+	// 		From: from,
+	// 		To:   &contract,
+	// 		// GasPrice: gasPrice,
+	// 		Value: txParam.Value,
+	// 		Data:  input,
+	// 	}
+	// 	estimatedGas, err := client.EstimateGas(ctx, msg)
+	// 	if err != nil {
+	// 		return nil, fmt.Errorf("estimate gas error: %v", err)
+	// 	}
+
+	// 	// estigatedGas * gasLimitRatio
+	// 	gasLimit := decimal.NewFromInt(int64(estimatedGas)).Mul(limitRatio)
+	// 	txParam.GasLimit = gasLimit.BigInt().Uint64()
+	// 	logger.Debug().Msgf("after gas limit ratio: %v, gas limit: %v", gasLimitRatio, txParam.GasLimit)
+	// } else {
+	// 	logger.Debug().Msgf("no gasLimitRatio")
+	// 	if gasLimit != "" {
+	// 		l, err := strconv.ParseUint(gasLimit, 10, 64)
+	// 		if err != nil {
+	// 			return nil, fmt.Errorf("parse gasLimit: %v error: %w", gasLimit, err)
+	// 		}
+	// 		txParam.GasLimit = l
+	// 	} else {
+	// 		logger.Debug().Msgf("estimate gas for direct use")
+	// 		msg := ethereum.CallMsg{
+	// 			From: from,
+	// 			To:   &contract,
+	// 			// GasPrice: gasPrice,
+	// 			Value: txParam.Value,
+	// 			Data:  input,
+	// 		}
+	// 		estimatedGas, err := client.EstimateGas(ctx, msg)
+	// 		if err != nil {
+	// 			return nil, fmt.Errorf("estimate gas error: %v", err)
+	// 		}
+	// 		txParam.GasLimit = estimatedGas
+	// 	}
+	// }
 
 	// Gas
 	if eip1559 {
 		logger.Debug().Msgf("eip1559 on, ignore gasPrice")
+
 		if gasRatio != "" {
 			logger.Debug().Msgf("parse gasRatio")
 			gRatio, err := decimal.NewFromString(gasRatio)

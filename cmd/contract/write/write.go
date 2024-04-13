@@ -55,7 +55,7 @@ func init() {
 	accountIndex = writeCmd.Flags().Uint("accountIndex", 0, "account index")
 
 	nonce = writeCmd.Flags().String("nonce", "", "custom nonce")
-	value = writeCmd.Flags().String("value", "", "custom value")
+	value = writeCmd.Flags().String("value", "0", "custom value")
 	gasLimitRatio = writeCmd.Flags().String("gasLimitRatio", "", "gasLimitRatio")
 	gasLimit = writeCmd.Flags().String("gasLimit", "", "custom gasLimit")
 	gasRatio = writeCmd.Flags().String("gasRatio", "", "gasRatio")

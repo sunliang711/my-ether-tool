@@ -178,7 +178,7 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 	if err != nil {
 		logger.Error().Err(err).Msgf("get receipt")
 	} else {
-		logger.Info().Msgf("receipt: %v", receipt) // TODO: format receipt
+		utils.ShowReceipt(logger, receipt)
 	}
 
 	link := fmt.Sprintf("%v/tx/%v", net.Explorer, tx.Hash())

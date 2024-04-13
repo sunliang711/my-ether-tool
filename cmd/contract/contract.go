@@ -287,6 +287,13 @@ func WriteContract(ctx context.Context, networkName, contract, abiJson, methodNa
 	transactor.GasTipCap = txParams.GasTipCap
 	transactor.Value = txParams.Value
 
+	logger.Info().Msgf("Nonce: %v", transactor.Nonce)
+	logger.Info().Msgf("GasLimit: %v", transactor.GasLimit)
+	logger.Info().Msgf("GasPrice: %v", transactor.GasPrice.String())
+	logger.Info().Msgf("GasFeeCap: %v", transactor.GasFeeCap.String())
+	logger.Info().Msgf("GasTipCap: %v", transactor.GasTipCap.String())
+	logger.Info().Msgf("Value: %v", value)
+
 	if !noconfirm {
 		input, err := utils.ReadChar("Send? [y/N] ")
 		utils.ExitWhenError(err, "read input error: %s\n", err)
@@ -304,6 +311,12 @@ func WriteContract(ctx context.Context, networkName, contract, abiJson, methodNa
 
 	logger.Info().Msgf("wait for confirmation..")
 	bind.WaitMined(ctx, client, tx)
+
+	receipt, err := client.TransactionReceipt(ctx, tx.Hash())
+	if err != nil {
+		return fmt.Errorf("get receipt error: %w", err)
+	}
+	utils.ShowReceipt(logger, receipt)
 
 	logger.Info().Msgf("tx hash: %v", tx.Hash())
 	logger.Info().Msgf("tx url: %v", fmt.Sprintf("%v/tx/%v", net.Explorer, tx.Hash()))
