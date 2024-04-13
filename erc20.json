@@ -1,0 +1,40 @@
+[
+    {
+        "name": "balanceOf",
+        "type": "function",
+        "inputs": [
+            {
+                "internalType": "address",
+                "type": "address"
+            }
+        ],
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "type": "uint256"
+            }
+        ]
+    },
+    {
+        "name": "symbol",
+        "type": "function",
+        "inputs": [],
+        "outputs": [
+            {
+                "internalType": "string",
+                "type": "string"
+            }
+        ]
+    },
+    {
+        "name": "decimals",
+        "type": "function",
+        "inputs": [],
+        "outputs": [
+            {
+                "internalType": "uint26",
+                "type": "uint26"
+            }
+        ]
+    }
+]

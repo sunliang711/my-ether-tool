@@ -8,13 +8,15 @@ import (
 	"fmt"
 	"my-ether-tool/cmd"
 	"my-ether-tool/database"
+	"my-ether-tool/types"
+	"my-ether-tool/utils"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 )
 
@@ -38,6 +40,11 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// txCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	ContractCmd.PersistentFlags().String("network", "", "network name")
+	ContractCmd.PersistentFlags().String("contract", "", "contract address")
+	ContractCmd.PersistentFlags().String("abi", "", "abi json string")
+	ContractCmd.PersistentFlags().String("method", "", "method name")
+	ContractCmd.PersistentFlags().StringArray("args", nil, "arguments of abi (--args xx1 --args xx2 ...)")
 }
 
 func parseAbi(abiJson string) (*abi.ABI, error) {
@@ -49,6 +56,9 @@ func parseAbi(abiJson string) (*abi.ABI, error) {
 	return &abiObj, nil
 }
 
+// 准备abi中指定method的实际参数
+// 因为args是传递过来的string类型的
+// 要把他们转换成实际的值，比如*big.Int common.Address []byte 等等
 func abiArgs(abiObj *abi.ABI, methodName string, args ...string) (string, []interface{}, error) {
 	methodNum := len(abiObj.Methods)
 	if methodNum == 0 {
@@ -75,77 +85,206 @@ func abiArgs(abiObj *abi.ABI, methodName string, args ...string) (string, []inte
 		return "", nil, fmt.Errorf("can not get abi method by name: %v", methodName)
 	}
 
-	var params []interface{}
+	if len(args) != len(method.Inputs) {
+		return "", nil, fmt.Errorf("arg count not match abi input count")
+	}
+	var realArgs []interface{}
 	for i, m := range method.Inputs {
 		arg := args[i]
-		// TODO
-		_ = arg
-		switch m.Type.T {
-		case abi.IntTy:
-			// params = append(params)
-			// int1 int2 ..
-		case abi.UintTy:
-			// uint1 uint2 ..
-		case abi.BoolTy:
-		case abi.StringTy:
-		case abi.AddressTy:
-		case abi.BytesTy:
 
-		case abi.ArrayTy:
-			panic("not support array type")
-		case abi.SliceTy:
-			panic("not support slice type")
-		case abi.TupleTy:
-			panic("not support tuple type")
-		case abi.FixedBytesTy:
-			panic("not support fixedBytes type")
-		case abi.HashTy:
-			panic("not support hash type")
-		case abi.FixedPointTy:
-			panic("not support fixedPoint type")
-		case abi.FunctionTy:
-			panic("not support function type")
+		v, err := parseAbiType(m.Type, arg)
+		if err != nil {
+			return "", nil, err
+		}
+
+		realArgs = append(realArgs, v)
+	}
+
+	return method.Name, realArgs, nil
+}
+
+type NameValue struct {
+	Name  string
+	Value string
+}
+
+func parseOutput(abiObj *abi.ABI, methodName string, results []any) ([]NameValue, error) {
+	methodNum := len(abiObj.Methods)
+	if methodNum == 0 {
+		return nil, fmt.Errorf("no method found in abi")
+	}
+
+	var method *abi.Method
+	// 如果abi中只有一个method，那么忽略methodName
+	if methodNum == 1 {
+		for name, m := range abiObj.Methods {
+			if methodName != "" {
+				fmt.Printf("ignore method name\n")
+			}
+			fmt.Printf("use unique method: %v\n", name)
+			method = &m
+		}
+	} else {
+		if m, ok := abiObj.Methods[methodName]; ok {
+			method = &m
 		}
 	}
 
-	return method.Name, params, nil
+	if method == nil {
+		return nil, fmt.Errorf("can not get abi method by name: %v", methodName)
+	}
+
+	if len(results) != len(method.Outputs) {
+		return nil, fmt.Errorf("result count not match abi output count")
+	}
+
+	var nameValues []NameValue
+
+	for i, output := range method.Outputs {
+		result := results[i]
+		r, err := decodeOutput(output.Type, result)
+		if err != nil {
+			return nil, err
+		}
+
+		nameValues = append(nameValues, NameValue{
+			Name:  output.Name,
+			Value: r,
+		})
+
+	}
+
+	return nameValues, nil
 }
 
-func ReadContract(ctx context.Context, networkName, contract, abiJson, methodName string, args ...string) (string, error) {
+func ReadContract(ctx context.Context, networkName, contract, abiJson, methodName string, args ...string) ([]NameValue, error) {
+	logger := utils.GetLogger("ReadContract")
+	logger.Debug().Msgf("abi: %v", abiJson)
+
+	logger.Info().Msg("parse abi")
 	abiObj, err := parseAbi(abiJson)
 	if err != nil {
-		return "", fmt.Errorf("parse abi error: %w", err)
+		return nil, fmt.Errorf("parse abi error: %w", err)
 	}
-	contractAddress := common.HexToAddress(contract)
 
-	log.Info().Msgf("query network: %v", networkName)
+	contractAddress := common.HexToAddress(contract)
+	logger.Info().Msgf("contract address: %v", contractAddress)
+
+	logger.Info().Msgf("query network: %v", networkName)
 	net, err := database.QueryNetworkOrCurrent(networkName)
 	if err != nil {
-		return "", fmt.Errorf("query network error: %w", err)
+		return nil, fmt.Errorf("query network:%v error: %w", networkName, err)
 	}
-	log.Debug().Msgf("network info: %v", net)
+	logger.Debug().Msgf("network info: %v", net)
 
+	logger.Info().Msgf("dial rpc: %v", net.Rpc)
 	client, err := ethclient.Dial(net.Rpc)
 	if err != nil {
-		return "", fmt.Errorf("dial rpc error: %w", err)
+		return nil, fmt.Errorf("dial rpc error: %w", err)
 	}
 	defer client.Close()
 
-	methodName, params, err := abiArgs(abiObj, methodName, args...)
+	logger.Info().Msg("prepare abi args")
+	methodName, realArgs, err := abiArgs(abiObj, methodName, args...)
+	if err != nil {
+		return nil, err
+	}
 
-	var results []interface{}
+	logger.Info().Msgf("call method: %v with args: %v", methodName, realArgs)
+	var results []any
 	boundContract := bind.NewBoundContract(contractAddress, *abiObj, client, nil, nil)
-	boundContract.Call(&bind.CallOpts{Context: ctx}, &results, methodName, params)
+	err = boundContract.Call(&bind.CallOpts{Context: ctx}, &results, methodName, realArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("call contract error: %w", err)
+	}
 
-	return "", nil
+	logger.Debug().Msgf("raw results: %v", results)
+	outputs, err := parseOutput(abiObj, methodName, results)
+	if err != nil {
+		return nil, err
+	}
+
+	logger.Debug().Msgf("parsed output: %v", outputs)
+
+	return outputs, nil
 }
 
-func WriteContract(contract, abiJson, methodName string, args ...string) error {
+func WriteContract(ctx context.Context, networkName, contract, abiJson, methodName, accountName string, accountIndex uint, args ...string) error {
+	logger := utils.GetLogger("WriteContract")
+
+	logger.Info().Msgf("query network: %v", networkName)
+	net, err := database.QueryNetworkOrCurrent(networkName)
+	if err != nil {
+		return fmt.Errorf("query network:%v error: %w", networkName, err)
+	}
+	logger.Debug().Msgf("network info: %v", net)
+
+	logger.Info().Msgf("dial rpc: %v", net.Rpc)
+	client, err := ethclient.Dial(net.Rpc)
+	if err != nil {
+		return fmt.Errorf("dial rpc error: %w", err)
+	}
+	defer client.Close()
+
+	logger.Info().Msgf("query account: %v with index: %v", accountName, accountIndex)
+	account, err := database.QueryAccountOrCurrent(accountName, accountIndex)
+	if err != nil {
+		return fmt.Errorf("query account error: %w", err)
+	}
+
+	accountDetails, err := types.AccountToDetails(account)
+	if err != nil {
+		return fmt.Errorf("get account details error: %w", err)
+	}
+	logger.Info().Msgf("account info: name: %v address: %v account index: %v", accountDetails.Name, accountDetails.Address, accountDetails.CurrentIndex)
+
+	pk := strings.TrimPrefix(accountDetails.PrivateKey, "0x")
+	privateKey, err := crypto.HexToECDSA(pk)
+	if err != nil {
+		return fmt.Errorf("create private key error: %w", err)
+	}
+
+	logger.Info().Msg("query chain id")
+	chainId, err := client.ChainID(ctx)
+	if err != nil {
+		return fmt.Errorf("get chain id error: %w", err)
+	}
+
+	transactor, err := bind.NewKeyedTransactorWithChainID(privateKey, chainId)
+	if err != nil {
+		return err
+	}
+	// TODO:
+	// custom nonce
+	// custom gasLimit
+	// custom gasPrice
+	// custom gasFeeCap
+	// custom gasTipCap
+	// custom value
+	// custom NoSend
+
+	logger.Info().Msgf("parse abi")
 	abiObj, err := parseAbi(abiJson)
 	if err != nil {
 		return fmt.Errorf("parse abi error: %w", err)
 	}
 	_ = abiObj
+
+	methodName, realArgs, err := abiArgs(abiObj, methodName, args...)
+	if err != nil {
+		return err
+	}
+
+	contractAddress := common.HexToAddress(contract)
+	logger.Info().Msgf("contract address: %v", contractAddress)
+
+	boundContract := bind.NewBoundContract(contractAddress, *abiObj, client, client, nil)
+	tx, err := boundContract.Transact(transactor, methodName, realArgs...)
+	if err != nil {
+		return fmt.Errorf("transact error: %v", err)
+	}
+
+	logger.Info().Msgf("tx hash: %v", tx.Hash())
 
 	return nil
 }

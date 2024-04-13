@@ -1,0 +1,313 @@
+[
+    {
+        "inputs": [],
+        "stateMutability": "nonpayable",
+        "type": "constructor"
+    },
+    {
+        "inputs": [],
+        "name": "GetAgesI",
+        "outputs": [
+            {
+                "internalType": "int8",
+                "name": "",
+                "type": "int8"
+            },
+            {
+                "internalType": "int16",
+                "name": "",
+                "type": "int16"
+            },
+            {
+                "internalType": "int88",
+                "name": "",
+                "type": "int88"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "GetAgesU",
+        "outputs": [
+            {
+                "internalType": "uint8",
+                "name": "ageu8",
+                "type": "uint8"
+            },
+            {
+                "internalType": "uint16",
+                "name": "ageu16",
+                "type": "uint16"
+            },
+            {
+                "internalType": "uint88",
+                "name": "ageu88",
+                "type": "uint88"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "int16",
+                "name": "age",
+                "type": "int16"
+            }
+        ],
+        "name": "SetAge16",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "int8",
+                "name": "age",
+                "type": "int8"
+            }
+        ],
+        "name": "SetAge8",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "int88",
+                "name": "age",
+                "type": "int88"
+            }
+        ],
+        "name": "SetAge88",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint88",
+                "name": "age",
+                "type": "uint88"
+            }
+        ],
+        "name": "SetAgeU88",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint16",
+                "name": "age",
+                "type": "uint16"
+            }
+        ],
+        "name": "SetAgeu16",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint8",
+                "name": "age",
+                "type": "uint8"
+            }
+        ],
+        "name": "SetAgeu8",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "bytes",
+                "name": "b",
+                "type": "bytes"
+            }
+        ],
+        "name": "SetHash",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "bool",
+                "name": "v",
+                "type": "bool"
+            }
+        ],
+        "name": "SetInited",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "string",
+                "name": "n",
+                "type": "string"
+            }
+        ],
+        "name": "SetName",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "address",
+                "name": "o",
+                "type": "address"
+            }
+        ],
+        "name": "SetOwner",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "age16",
+        "outputs": [
+            {
+                "internalType": "int16",
+                "name": "",
+                "type": "int16"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "age8",
+        "outputs": [
+            {
+                "internalType": "int8",
+                "name": "",
+                "type": "int8"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "age88",
+        "outputs": [
+            {
+                "internalType": "int88",
+                "name": "",
+                "type": "int88"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "ageu16",
+        "outputs": [
+            {
+                "internalType": "uint16",
+                "name": "",
+                "type": "uint16"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "ageu8",
+        "outputs": [
+            {
+                "internalType": "uint8",
+                "name": "",
+                "type": "uint8"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "ageu88",
+        "outputs": [
+            {
+                "internalType": "uint88",
+                "name": "",
+                "type": "uint88"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "hash",
+        "outputs": [
+            {
+                "internalType": "bytes",
+                "name": "",
+                "type": "bytes"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "inited",
+        "outputs": [
+            {
+                "internalType": "bool",
+                "name": "",
+                "type": "bool"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "name",
+        "outputs": [
+            {
+                "internalType": "string",
+                "name": "",
+                "type": "string"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "owner",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    }
+]
