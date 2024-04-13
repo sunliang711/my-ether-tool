@@ -35,7 +35,6 @@ import (
 // eip1559为false时，当gasPrice不为空时使用gasPrice，否则从rpc获取
 func BuildTransaction(ctx context.Context, rpc string, from string, to string, value *string, data string, abi string, args []string, gasLimit uint64, nonce string, chainID int, gasRatio, gasPrice string, gasTipCap string, gasFeeCap string, eip1559 bool, sendAll bool) (tx *types.Transaction /*newValue *big.Int,*/, err error) {
 	// check params
-
 	var (
 		nonce0   uint64
 		chainID0 *big.Int = big.NewInt(0)
@@ -47,6 +46,7 @@ func BuildTransaction(ctx context.Context, rpc string, from string, to string, v
 	to = strings.TrimPrefix(to, "0x")
 	data = strings.TrimPrefix(data, "0x")
 
+	logger := utils.GetLogger("BuildTransaction")
 	fromAddress := common.HexToAddress(from)
 	toAddress := common.HexToAddress(to)
 
@@ -62,7 +62,7 @@ func BuildTransaction(ctx context.Context, rpc string, from string, to string, v
 
 	if sendAll {
 		eip1559 = false
-		fmt.Printf("sendAll conflict with eip1559, disable eip1559\n")
+		logger.Info().Msgf("sendAll conflict with eip1559, disable eip1559")
 	}
 
 	if data != "" {
@@ -147,12 +147,6 @@ func BuildTransaction(ctx context.Context, rpc string, from string, to string, v
 			feeCap = feeCap.Mul(feeCap, gWei)
 
 		} else {
-			// get by rpc
-			// var gasPrice0 *big.Int
-			// gasPrice0, err = client.SuggestGasPrice(ctx)
-			// if err != nil {
-			// 	return
-			// }
 
 			tipCap, err = client.SuggestGasTipCap(ctx)
 			if err != nil {
@@ -168,6 +162,19 @@ func BuildTransaction(ctx context.Context, rpc string, from string, to string, v
 
 			// baseFee := new(big.Int).Sub(gasPrice0, tipCap)
 			feeCap = new(big.Int).Add(tipCap, new(big.Int).Mul(baseFee, big.NewInt(2)))
+		}
+
+		if gasRatio != "" {
+			gRatio, err := decimal.NewFromString(gasRatio)
+			if err != nil {
+				return nil, fmt.Errorf("parse gasRatio: %v error: %w", gasRatio, err)
+			}
+
+			tipCap = decimal.NewFromBigInt(tipCap, 0).Mul(gRatio).BigInt()
+			feeCap = decimal.NewFromBigInt(feeCap, 0).Mul(gRatio).BigInt()
+			logger.Debug().Msgf("after gasRatio: %v, tipCap: %v", gasRatio, tipCap.String())
+			logger.Debug().Msgf("after gasRatio: %v, feeCap: %v", gasRatio, feeCap.String())
+
 		}
 		tx = types.NewTx(&types.DynamicFeeTx{
 			ChainID:   chainID0,
@@ -197,8 +204,19 @@ func BuildTransaction(ctx context.Context, rpc string, from string, to string, v
 			price = price.Mul(price, gWei)
 		}
 
+		if gasRatio != "" {
+			gRatio, err := decimal.NewFromString(gasRatio)
+			if err != nil {
+				return nil, fmt.Errorf("parse gasRatio: %v error: %w", gasRatio, err)
+			}
+
+			price = decimal.NewFromBigInt(price, 0).Mul(gRatio).BigInt()
+			logger.Debug().Msgf("after gasRatio: %v, gasPrice: %v", gasRatio, price.String())
+		}
+
 		// 重新计算value
 		if sendAll {
+			logger.Info().Msgf("sendAll mode")
 			// 查询当前balance
 			currentBalance, err := client.BalanceAt(ctx, common.HexToAddress(from), nil)
 			if err != nil {
@@ -365,7 +383,7 @@ func GetTxParams(ctx context.Context, client *ethclient.Client, fromAddress, con
 		// estigatedGas * gasLimitRatio
 		gasLimit := decimal.NewFromInt(int64(estimatedGas)).Mul(limitRatio)
 		txParam.GasLimit = gasLimit.BigInt().Uint64()
-		logger.Debug().Msgf("after gas limit ratio, gas limit: %v", txParam.GasLimit)
+		logger.Debug().Msgf("after gas limit ratio: %v, gas limit: %v", gasLimitRatio, txParam.GasLimit)
 	} else {
 		logger.Debug().Msgf("no gasLimitRatio")
 		if gasLimit != "" {
@@ -393,7 +411,7 @@ func GetTxParams(ctx context.Context, client *ethclient.Client, fromAddress, con
 
 	// Gas
 	if eip1559 {
-		logger.Debug().Msgf("eip1559 on")
+		logger.Debug().Msgf("eip1559 on, ignore gasPrice")
 		if gasRatio != "" {
 			logger.Debug().Msgf("parse gasRatio")
 			gRatio, err := decimal.NewFromString(gasRatio)
@@ -420,7 +438,7 @@ func GetTxParams(ctx context.Context, client *ethclient.Client, fromAddress, con
 			tip := decimal.NewFromBigInt(tipCap, 0).Mul(gRatio)
 			fee := decimal.NewFromBigInt(feeCap, 0).Mul(gRatio)
 
-			logger.Debug().Msgf("after gas ratio, tip cap: %v fee cap: %v", tip.String(), fee.String())
+			logger.Debug().Msgf("after gas ratio: %v, tip cap: %v fee cap: %v", gasRatio, tip.String(), fee.String())
 
 			txParam.GasTipCap = tip.BigInt()
 			txParam.GasFeeCap = fee.BigInt()
@@ -473,7 +491,7 @@ func GetTxParams(ctx context.Context, client *ethclient.Client, fromAddress, con
 		}
 
 	} else {
-		logger.Debug().Msgf("eip1559 off")
+		logger.Debug().Msgf("eip1559 off, ignore gasFeeCap and gasTipCap")
 		// legacy
 		if gasRatio != "" {
 			logger.Debug().Msgf("parse gasRatio")
