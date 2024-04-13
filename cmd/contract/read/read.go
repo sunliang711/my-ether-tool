@@ -5,8 +5,8 @@ package read
 
 import (
 	"context"
-	"my-ether-tool/cmd/contract"
-	"my-ether-tool/utils"
+	"met/cmd/contract"
+	utils "met/utils"
 	"time"
 
 	"github.com/spf13/cobra"

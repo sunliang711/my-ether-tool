@@ -1,9 +1,9 @@
 package add
 
 import (
-	"my-ether-tool/cmd/network"
-	"my-ether-tool/database"
-	"my-ether-tool/utils"
+	"met/cmd/network"
+	database "met/database"
+	utils "met/utils"
 
 	"github.com/spf13/cobra"
 )
@@ -33,12 +33,13 @@ func init() {
 
 func addNetwork(cmd *cobra.Command, args []string) {
 	var (
-		err error
+		err    error
+		logger = utils.GetLogger("addNetwork")
 	)
 
-	utils.ExitWithMsgWhen(*name == "", "need name\n")
-	utils.ExitWithMsgWhen(*rpc == "", "need rpc\n")
-	utils.ExitWithMsgWhen(*symbol == "", "need symbol\n")
+	utils.ExitWhen(logger, *name == "", "need name")
+	utils.ExitWhen(logger, *rpc == "", "need rpc")
+	utils.ExitWhen(logger, *symbol == "", "need symbol")
 
 	network := database.Network{
 		Name:     *name,
@@ -48,5 +49,5 @@ func addNetwork(cmd *cobra.Command, args []string) {
 		Current:  false,
 	}
 	err = database.AddNetwork(&network)
-	utils.ExitWhenError(err, "Add netowrk error: %s\n", err)
+	utils.ExitWhenErr(logger, err, "Add netowrk error: %s", err)
 }

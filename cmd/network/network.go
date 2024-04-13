@@ -5,8 +5,8 @@ package network
 
 import (
 	"fmt"
-	"my-ether-tool/cmd"
-	"my-ether-tool/database"
+	cmd "met/cmd"
+	database "met/database"
 
 	"github.com/spf13/cobra"
 )

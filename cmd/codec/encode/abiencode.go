@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"os"
 
-	"my-ether-tool/cmd/codec"
-	"my-ether-tool/transaction"
-	"my-ether-tool/utils"
+	"met/cmd/codec"
+	transaction "met/transaction"
+	utils "met/utils"
 
 	"github.com/spf13/cobra"
 )

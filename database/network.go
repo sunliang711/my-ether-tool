@@ -2,6 +2,7 @@ package database
 
 import (
 	"fmt"
+	utils "met/utils"
 
 	"gorm.io/gorm"
 )
@@ -33,6 +34,9 @@ func QueryNetwork(name string) (network Network, err error) {
 }
 
 func SwitchNetwork(name string) error {
+	logger := utils.GetLogger("SwitchNetwork")
+	logger.Info().Msgf("switch to network: %v", name)
+
 	// 清空老的current
 	err := Conn.Model(&Network{}).Where("current = true").Update("current", false).Error
 	if err != nil {
@@ -44,6 +48,11 @@ func SwitchNetwork(name string) error {
 }
 
 func AddNetwork(network *Network) error {
+	logger := utils.GetLogger("AddNetwork")
+	logger.Info().Msgf("add network: %v", network.Name)
+
+	logger.Debug().Msgf("query network: %v", network.Name)
+
 	_, err := QueryNetwork(network.Name)
 	if err == gorm.ErrRecordNotFound {
 		result := Conn.Create(network)
@@ -51,6 +60,7 @@ func AddNetwork(network *Network) error {
 		if err != nil {
 			return err
 		}
+		logger.Info().Msgf("network: %v added", network.Name)
 		//  switch network
 		err = SwitchNetwork(network.Name)
 		return err

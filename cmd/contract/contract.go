@@ -6,11 +6,11 @@ package contract
 import (
 	"context"
 	"fmt"
-	"my-ether-tool/cmd"
-	"my-ether-tool/database"
-	"my-ether-tool/transaction"
-	"my-ether-tool/types"
-	"my-ether-tool/utils"
+	cmd "met/cmd"
+	database "met/database"
+	transaction "met/transaction"
+	types "met/types"
+	utils "met/utils"
 	"os"
 	"strings"
 

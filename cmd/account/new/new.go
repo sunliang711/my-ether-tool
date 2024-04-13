@@ -2,11 +2,11 @@ package new
 
 import (
 	"fmt"
-	"my-ether-tool/cmd/account"
-	"my-ether-tool/database"
-	"my-ether-tool/hd"
-	"my-ether-tool/types"
-	"my-ether-tool/utils"
+	"met/cmd/account"
+	database "met/database"
+	hd "met/hd"
+	types "met/types"
+	utils "met/utils"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"

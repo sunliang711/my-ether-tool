@@ -1,4 +1,4 @@
-module my-ether-tool
+module met
 
 go 1.20
 

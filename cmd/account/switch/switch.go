@@ -1,9 +1,9 @@
 package rm
 
 import (
-	"my-ether-tool/cmd/account"
-	"my-ether-tool/database"
-	"my-ether-tool/utils"
+	"met/cmd/account"
+	database "met/database"
+	utils "met/utils"
 
 	"github.com/spf13/cobra"
 )

@@ -3,8 +3,8 @@ package types
 import (
 	"errors"
 	"fmt"
-	"my-ether-tool/database"
-	"my-ether-tool/hd"
+	database "met/database"
+	hd "met/hd"
 	"strings"
 )
 

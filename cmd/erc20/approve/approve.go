@@ -3,8 +3,8 @@ package approve
 import (
 	"context"
 	"fmt"
-	"my-ether-tool/cmd/erc20"
-	"my-ether-tool/utils"
+	"met/cmd/erc20"
+	utils "met/utils"
 	"time"
 
 	"github.com/spf13/cobra"

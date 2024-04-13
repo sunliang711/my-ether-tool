@@ -5,10 +5,10 @@ package account
 
 import (
 	"fmt"
-	"my-ether-tool/cmd"
-	"my-ether-tool/database"
-	"my-ether-tool/types"
-	"my-ether-tool/utils"
+	cmd "met/cmd"
+	database "met/database"
+	types "met/types"
+	utils "met/utils"
 
 	"github.com/spf13/cobra"
 )

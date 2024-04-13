@@ -2,7 +2,7 @@ package setup
 
 import (
 	"fmt"
-	"my-ether-tool/database"
+	database "met/database"
 	"os"
 	"path"
 )

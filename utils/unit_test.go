@@ -2,7 +2,7 @@ package utils
 
 import "testing"
 
-// go test -count=1 -v  my-ether-tool/utils -run 'TestParseUnits'
+// go test -count=1 -v  metutils -run 'TestParseUnits'
 func TestParseUnits(t *testing.T) {
 	r1, err := ParseUnits("1.2", UnitEth)
 	if err != nil {
@@ -18,7 +18,7 @@ func TestParseUnits(t *testing.T) {
 
 }
 
-// go test -count=1 -v  my-ether-tool/utils -run 'TestStringMul'
+// go test -count=1 -v  metutils -run 'TestStringMul'
 func TestStringMul(t *testing.T) {
 	r1, err := StringMul("1.2", "1000000")
 	if err != nil {
@@ -34,7 +34,7 @@ func TestStringMul(t *testing.T) {
 	t.Logf("r2: %s\n", r2.String())
 }
 
-// go test -count=1 -v  my-ether-tool/utils -run 'TestStringDiv'
+// go test -count=1 -v  metutils -run 'TestStringDiv'
 func TestStringDiv(t *testing.T) {
 	r1, err := StringDiv("1200", "1000000")
 	if err != nil {

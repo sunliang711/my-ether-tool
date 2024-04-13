@@ -2,7 +2,7 @@ package hd
 
 import "testing"
 
-// go test -count=1 -v my-ether-tool/hd
+// go test -count=1 -v methd
 
 func TestCreateMnemonic(t *testing.T) {
 	mnemonic, err := CreateMnemonic(12)

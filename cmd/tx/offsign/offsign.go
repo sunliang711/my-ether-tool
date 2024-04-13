@@ -13,11 +13,11 @@ import (
 	"strings"
 	"time"
 
-	"my-ether-tool/cmd/tx"
-	"my-ether-tool/database"
-	"my-ether-tool/transaction"
-	ttypes "my-ether-tool/types"
-	"my-ether-tool/utils"
+	"met/cmd/tx"
+	database "met/database"
+	transaction "met/transaction"
+	ttypes "met/types"
+	utils "met/utils"
 
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/google/uuid"
