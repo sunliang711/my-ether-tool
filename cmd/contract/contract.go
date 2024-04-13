@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"my-ether-tool/cmd"
 	"my-ether-tool/database"
+	"my-ether-tool/transaction"
 	"my-ether-tool/types"
 	"my-ether-tool/utils"
 	"strings"
@@ -209,7 +210,7 @@ func ReadContract(ctx context.Context, networkName, contract, abiJson, methodNam
 	return outputs, nil
 }
 
-func WriteContract(ctx context.Context, networkName, contract, abiJson, methodName, accountName string, accountIndex uint, args ...string) error {
+func WriteContract(ctx context.Context, networkName, contract, abiJson, methodName, accountName, nonce, value, gasLimitRatio, gasLimit, gasRatio, gasPrice, gasFeeCap, gasTipCap string, accountIndex uint, eip1559 bool, args ...string) error {
 	logger := utils.GetLogger("WriteContract")
 
 	logger.Info().Msgf("query network: %v", networkName)
@@ -254,21 +255,12 @@ func WriteContract(ctx context.Context, networkName, contract, abiJson, methodNa
 	if err != nil {
 		return err
 	}
-	// TODO:
-	// custom nonce
-	// custom gasLimit
-	// custom gasPrice
-	// custom gasFeeCap
-	// custom gasTipCap
-	// custom value
-	// custom NoSend
 
 	logger.Info().Msgf("parse abi")
 	abiObj, err := parseAbi(abiJson)
 	if err != nil {
 		return fmt.Errorf("parse abi error: %w", err)
 	}
-	_ = abiObj
 
 	methodName, realArgs, err := abiArgs(abiObj, methodName, args...)
 	if err != nil {
@@ -278,6 +270,22 @@ func WriteContract(ctx context.Context, networkName, contract, abiJson, methodNa
 	contractAddress := common.HexToAddress(contract)
 	logger.Info().Msgf("contract address: %v", contractAddress)
 
+	input, err := abiObj.Pack(methodName, realArgs...)
+	if err != nil {
+		return fmt.Errorf("abi pack error: %v", err)
+	}
+	txParams, err := transaction.GetTxParams(ctx, client, accountDetails.Address, contract, chainId.String(), nonce, value, gasLimitRatio, gasLimit, gasRatio, gasPrice, gasFeeCap, gasTipCap, eip1559, input)
+	if err != nil {
+		return fmt.Errorf("GetTxParams error: %w", err)
+	}
+
+	transactor.Nonce = txParams.Nonce
+	transactor.GasLimit = txParams.GasLimit
+	transactor.GasPrice = txParams.GasPrice
+	transactor.GasFeeCap = txParams.GasFeeCap
+	transactor.GasTipCap = txParams.GasTipCap
+	transactor.Value = txParams.Value
+
 	boundContract := bind.NewBoundContract(contractAddress, *abiObj, client, client, nil)
 	tx, err := boundContract.Transact(transactor, methodName, realArgs...)
 	if err != nil {
@@ -285,6 +293,7 @@ func WriteContract(ctx context.Context, networkName, contract, abiJson, methodNa
 	}
 
 	logger.Info().Msgf("tx hash: %v", tx.Hash())
+	logger.Info().Msgf("tx url: %v", fmt.Sprintf("%v/tx/%v", net.Explorer, tx.Hash()))
 
 	return nil
 }

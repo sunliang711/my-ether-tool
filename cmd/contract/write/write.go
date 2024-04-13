@@ -23,6 +23,16 @@ var writeCmd = &cobra.Command{
 var (
 	account      *string
 	accountIndex *uint
+
+	nonce         *string
+	value         *string
+	gasLimitRatio *string
+	gasLimit      *string
+	gasRatio      *string
+	gasPrice      *string
+	gasFeeCap     *string
+	gasTipCap     *string
+	eip1559       *bool
 )
 
 func init() {
@@ -42,6 +52,17 @@ func init() {
 	account = writeCmd.Flags().String("account", "", "account name")
 	accountIndex = writeCmd.Flags().Uint("accountIndex", 0, "account index")
 
+	nonce = writeCmd.Flags().String("nonce", "", "custom nonce")
+	value = writeCmd.Flags().String("value", "", "custom value")
+	gasLimitRatio = writeCmd.Flags().String("gasLimitRatio", "", "gasLimitRatio")
+	gasLimit = writeCmd.Flags().String("gasLimit", "", "custom gasLimit")
+	gasRatio = writeCmd.Flags().String("gasRatio", "", "gasRatio")
+	gasPrice = writeCmd.Flags().String("gasPrice", "", "custom gasPrice")
+	gasFeeCap = writeCmd.Flags().String("gasFeeCap", "", "custom gasFeeCap")
+	gasTipCap = writeCmd.Flags().String("gasTipCap", "", "custom gasTipCap")
+
+	eip1559 = writeCmd.Flags().Bool("eip1559", true, "eip1559")
+
 }
 
 func writeContract(cmd *cobra.Command, args []string) {
@@ -60,6 +81,6 @@ func writeContract(cmd *cobra.Command, args []string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
-	err = contract.WriteContract(ctx, network, contractAddress, abi, method, *account, *accountIndex, abiArgs...)
+	err = contract.WriteContract(ctx, network, contractAddress, abi, method, *account, *nonce, *value, *gasLimitRatio, *gasLimit, *gasRatio, *gasPrice, *gasFeeCap, *gasTipCap, *accountIndex, *eip1559, abiArgs...)
 	utils.ExitWhenErr(logger, err, "write contract error: %v", err)
 }
