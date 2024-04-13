@@ -61,7 +61,7 @@ func init() {
 	gasFeeCap = writeCmd.Flags().String("gasFeeCap", "", "custom gasFeeCap")
 	gasTipCap = writeCmd.Flags().String("gasTipCap", "", "custom gasTipCap")
 
-	eip1559 = writeCmd.Flags().Bool("eip1559", true, "eip1559")
+	eip1559 = writeCmd.Flags().Bool("eip1559", true, "eip1559 (use --eip1559=false to disable)")
 
 }
 
