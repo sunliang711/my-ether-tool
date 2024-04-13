@@ -11,6 +11,7 @@ import (
 	"my-ether-tool/transaction"
 	"my-ether-tool/types"
 	"my-ether-tool/utils"
+	"os"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -210,7 +211,7 @@ func ReadContract(ctx context.Context, networkName, contract, abiJson, methodNam
 	return outputs, nil
 }
 
-func WriteContract(ctx context.Context, networkName, contract, abiJson, methodName, accountName, nonce, value, gasLimitRatio, gasLimit, gasRatio, gasPrice, gasFeeCap, gasTipCap string, accountIndex uint, eip1559 bool, args ...string) error {
+func WriteContract(ctx context.Context, networkName, contract, abiJson, methodName, accountName, nonce, value, gasLimitRatio, gasLimit, gasRatio, gasPrice, gasFeeCap, gasTipCap string, accountIndex uint, eip1559 bool, noconfirm bool, args ...string) error {
 	logger := utils.GetLogger("WriteContract")
 
 	logger.Info().Msgf("query network: %v", networkName)
@@ -286,11 +287,23 @@ func WriteContract(ctx context.Context, networkName, contract, abiJson, methodNa
 	transactor.GasTipCap = txParams.GasTipCap
 	transactor.Value = txParams.Value
 
+	if !noconfirm {
+		input, err := utils.ReadChar("Send? [y/N] ")
+		utils.ExitWhenError(err, "read input error: %s\n", err)
+
+		if input != 'y' {
+			os.Exit(0)
+		}
+
+	}
 	boundContract := bind.NewBoundContract(contractAddress, *abiObj, client, client, nil)
 	tx, err := boundContract.Transact(transactor, methodName, realArgs...)
 	if err != nil {
 		return fmt.Errorf("transact error: %v", err)
 	}
+
+	logger.Info().Msgf("wait for confirmation..")
+	bind.WaitMined(ctx, client, tx)
 
 	logger.Info().Msgf("tx hash: %v", tx.Hash())
 	logger.Info().Msgf("tx url: %v", fmt.Sprintf("%v/tx/%v", net.Explorer, tx.Hash()))
