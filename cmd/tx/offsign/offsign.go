@@ -107,7 +107,7 @@ func offsign(cmd *cobra.Command, args []string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
-	tx, err := transaction.BuildTransaction(ctx, rpc, *from, *to, value, *data, *abi, *abiArgs, *gasLimit, *nonce, *chainID, *gasPrice, *tipCap, *feeCap, *eip1559, false)
+	tx, err := transaction.BuildTransaction(ctx, rpc, *from, *to, value, *data, *abi, *abiArgs, *gasLimit, *nonce, *chainID, "", *gasPrice, *tipCap, *feeCap, *eip1559, false)
 	utils.ExitWhenError(err, "build transaction error: %s\n", err)
 
 	signer := types.NewCancunSigner(tx.ChainId())

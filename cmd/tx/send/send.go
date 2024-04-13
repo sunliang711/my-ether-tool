@@ -3,7 +3,6 @@ package tx
 import (
 	"context"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"my-ether-tool/cmd/tx"
 	"my-ether-tool/database"
@@ -14,9 +13,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/google/uuid"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/cobra"
 )
 
@@ -43,6 +43,7 @@ var (
 	nonce   *string
 	chainID *int
 
+	gasRatio *string
 	gasLimit *uint64
 	eip1559  *bool
 	gasPrice *string
@@ -76,126 +77,148 @@ func init() {
 	tipCap = sendCmd.Flags().String("tipCap", "", "tipCap(gwei)")
 	feeCap = sendCmd.Flags().String("feeCap", "", "feeCap(gwei)")
 	eip1559 = sendCmd.Flags().Bool("eip1559", true, "eip1559 switch")
+	gasRatio = sendCmd.Flags().String("gasRatio", "", "gasRatio")
 
 	noconfirm = sendCmd.Flags().BoolP("noconfirm", "y", false, "do not need to confirm")
 }
 
 func sendTransaction(cmd *cobra.Command, args []string) {
+	logger := utils.GetLogger("sendTransaction")
 
 	account, err := database.QueryAccountOrCurrent(*account, *accountIndex)
-	utils.ExitWhenError(err, "load account error: %s\n", err)
+	utils.ExitWhenErr(logger, err, "load account error: %s", err)
 
 	details, err := ttypes.AccountToDetails(account)
-	utils.ExitWhenError(err, "calculate address error: %s\n", err)
+	utils.ExitWhenErr(logger, err, "calculate address error: %s", err)
 
 	privateKey, err := crypto.HexToECDSA(strings.TrimPrefix(details.PrivateKey, "0x"))
-	utils.ExitWhenError(err, "parse privateKey error: %s\n", err)
+	utils.ExitWhenErr(logger, err, "parse privateKey error: %s", err)
 
 	from := details.Address
 
 	net, err := database.QueryNetworkOrCurrent(*network)
-	utils.ExitWhenError(err, "load network error: %s\n", err)
+	utils.ExitWhenErr(logger, err, "load network error: %s", err)
 	rpc := net.Rpc
 
-	fmt.Printf("environment info:\n")
-	fmt.Printf("%-20s:%s\n", "network name", net.Name)
-	fmt.Printf("%-20s:%s\n", "network rpc", net.Rpc)
-	fmt.Printf("%-20s:%s\n", "account name", details.Name)
-	if details.Type == ttypes.MnemonicType {
-		fmt.Printf("%-20s:%s\n", "hd path", details.Path)
-	}
-	fmt.Printf("%-20s:%s\n", "address", details.Address)
+	logger.Info().Msgf("network name: %s", net.Name)
+	logger.Info().Msgf("network rpc: %s", net.Rpc)
+	logger.Info().Msgf("account name: %s", details.Name)
+	logger.Info().Msgf("address: %s", details.Address)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
 	// build tx
-	tx, err := transaction.BuildTransaction(ctx, rpc, from, *to, value, *data, *abi, *abiArgs, *gasLimit, *nonce, *chainID, *gasPrice, *tipCap, *feeCap, *eip1559, *all)
-	utils.ExitWhenError(err, "build tx error: %s\n", err)
+	tx, err := transaction.BuildTransaction(ctx, rpc, from, *to, value, *data, *abi, *abiArgs, *gasLimit, *nonce, *chainID, *gasRatio, *gasPrice, *tipCap, *feeCap, *eip1559, *all)
+	utils.ExitWhenErr(logger, err, "build tx error: %s", err)
+
+	client, err := ethclient.Dial(rpc)
+	if err != nil {
+		return
+	}
+	defer client.Close()
 
 	signer := types.LatestSignerForChainID(tx.ChainId())
 	txHash := signer.Hash(tx)
-	fmt.Printf("Hash to be signed: %s\n", txHash)
+	logger.Debug().Msgf("tx hash to be signed: %s", txHash)
 
 	// sign tx
-	fmt.Printf("Sign transaction..\n")
+	logger.Debug().Msgf("sign transaction")
 	tx, err = types.SignTx(tx, signer, privateKey)
-	utils.ExitWhenError(err, "sign tx error: %s\n", err)
+	utils.ExitWhenErr(logger, err, "sign tx error: %s", err)
 
-	fmt.Printf("Transaction to be sent:\n")
-	fmt.Printf("%-20s:%s\n", "From", from)
-	fmt.Printf("%-20s:%s\n", "To", tx.To())
-
-	fmt.Printf("%-20s:%s %s\n", "Value", *value, net.Symbol)
+	logger.Info().Msgf("transaction to be sent")
+	logger.Info().Msgf("From: %s", from)
+	logger.Info().Msgf("To: %s", tx.To())
+	logger.Info().Msgf("Value: %s %s", *value, net.Symbol)
 
 	if *abi != "" {
-		fmt.Printf("%-20s:%s\n", "abi", *abi)
+		logger.Info().Msgf("abi: %s", *abi)
 	}
 	if len(*abiArgs) != 0 {
-		fmt.Printf("%-20s:%v\n", "abi args", *abiArgs)
+		logger.Info().Msgf("abi args: %s", *abiArgs)
 	}
-	fmt.Printf("%-20s:%s\n", "Data", hex.EncodeToString(tx.Data()))
-	fmt.Printf("%-20s:%d\n", "Nonce", tx.Nonce())
-	fmt.Printf("%-20s:%s\n", "ChainId", tx.ChainId())
-	fmt.Printf("%-20s:%d\n", "GasLimit", tx.Gas())
+	logger.Info().Msgf("Data: %s", hex.EncodeToString(tx.Data()))
+	logger.Info().Msgf("Nonce: %v", tx.Nonce())
+	logger.Info().Msgf("ChainId: %s", tx.ChainId())
+	logger.Info().Msgf("GasLimit: %v", tx.Gas())
 
 	gasPrice, err := utils.Wei2Gwei(tx.GasPrice().String())
-	utils.ExitWhenError(err, "convert wei to gwei error: %s\n", err)
+	utils.ExitWhenErr(logger, err, "convert wei to gwei error: %s", err)
 	tipCap, err := utils.Wei2Gwei(tx.GasTipCap().String())
-	utils.ExitWhenError(err, "convert wei to gwei error: %s\n", err)
+	utils.ExitWhenErr(logger, err, "convert wei to gwei error: %s", err)
 	feeCap, err := utils.Wei2Gwei(tx.GasFeeCap().String())
-	utils.ExitWhenError(err, "convert wei to gwei error: %s\n", err)
+	utils.ExitWhenErr(logger, err, "convert wei to gwei error: %s", err)
 
-	fmt.Printf("%-20s:%s gwei\n", "GasPrice", gasPrice)
-	fmt.Printf("%-20s:%s gwei\n", "GasTipCap", tipCap)
-	fmt.Printf("%-20s:%s gwei\n", "GasFeeCap", feeCap)
-
-	// send transaction
-	txBytes, err := tx.MarshalBinary()
-	utils.ExitWhenError(err, "Marshal transaction to binary error: %s\n", err)
-
-	txHex := "0x" + hex.EncodeToString(txBytes)
-	fmt.Printf("%-20s:%s\n", "Raw transaction", txHex)
-	id, err := uuid.NewUUID()
-	utils.ExitWhenError(err, "create uuid error: %s\n", err)
+	logger.Info().Msgf("GasPrice: %s Gwei", gasPrice)
+	logger.Info().Msgf("GasTipCap: %s Gwei", tipCap)
+	logger.Info().Msgf("GasFeeCap: %s Gwei", feeCap)
 
 	if !*noconfirm {
 		input, err := utils.ReadChar("Send? [y/N] ")
-		utils.ExitWhenError(err, "read input error: %s\n", err)
+		utils.ExitWhenErr(logger, err, "read input error: %s", err)
 
 		if input != 'y' {
 			os.Exit(0)
 		}
-
 	}
 
-	jsonRpcData := ttypes.JsonRpcData{
-		JsonRpc: "2.0",
-		Method:  "eth_sendRawTransaction",
-		Params:  []string{txHex},
-		Id:      id.String(),
+	logger.Info().Msgf("send tx")
+	err = client.SendTransaction(ctx, tx)
+	if err != nil {
+		fmt.Printf("send tx error: %v\n", err)
+		return
 	}
-	// send txHex to rpc
-	httpClient := utils.NewHttpClient(rpc, 3)
-	fmt.Printf("Send tx: %s to rpc..\n", txHex)
-	resp, err := httpClient.PostStruct(nil, &jsonRpcData)
-	utils.ExitWhenError(err, "Send raw transaction error: %s", err)
 
-	var jsonRpcResult ttypes.JsonRpcResult
-	fmt.Printf("Decode result..\n")
-	err = json.NewDecoder(resp.Body).Decode(&jsonRpcResult)
-	utils.ExitWhenError(err, "decode json rpc result error: %s", err)
+	logger.Info().Msgf("waiting for confirmation")
+	bind.WaitMined(ctx, client, tx)
 
-	utils.ExitWithMsgWhen(jsonRpcResult.Id != id.String(), "json rpc id not match")
-
-	utils.ExitWithMsgWhen(jsonRpcResult.Result == "", "json rpc no result: %+v\n", jsonRpcResult)
-
-	explorer := net.Explorer
-	if explorer != "" {
-		explorer = strings.TrimSuffix(explorer, "/")
-		fmt.Printf("Transaction link: %s/tx/%s\n", explorer, jsonRpcResult.Result)
+	logger.Debug().Msgf("get receipt")
+	receipt, err := client.TransactionReceipt(ctx, tx.Hash())
+	if err != nil {
+		logger.Error().Err(err).Msgf("get receipt")
 	} else {
-		json.NewEncoder(os.Stdout).Encode(&jsonRpcResult)
+		logger.Info().Msgf("receipt: %v", receipt) // TODO: format receipt
 	}
+
+	link := fmt.Sprintf("%v/tx/%v", net.Explorer, tx.Hash())
+	logger.Info().Msgf("tx link: %v", link)
+
+	// send transaction
+	// txBytes, err := tx.MarshalBinary()
+	// utils.ExitWhenError(err, "Marshal transaction to binary error: %s\n", err)
+
+	// txHex := "0x" + hex.EncodeToString(txBytes)
+	// fmt.Printf("%-20s:%s\n", "Raw transaction", txHex)
+	// id, err := uuid.NewUUID()
+	// utils.ExitWhenError(err, "create uuid error: %s\n", err)
+	// jsonRpcData := ttypes.JsonRpcData{
+	// 	JsonRpc: "2.0",
+	// 	Method:  "eth_sendRawTransaction",
+	// 	Params:  []string{txHex},
+	// 	Id:      id.String(),
+	// }
+	// // send txHex to rpc
+	// httpClient := utils.NewHttpClient(rpc, 3)
+	// fmt.Printf("Send tx: %s to rpc..\n", txHex)
+	// resp, err := httpClient.PostStruct(nil, &jsonRpcData)
+	// utils.ExitWhenError(err, "Send raw transaction error: %s", err)
+
+	// var jsonRpcResult ttypes.JsonRpcResult
+	// fmt.Printf("Decode result..\n")
+	// err = json.NewDecoder(resp.Body).Decode(&jsonRpcResult)
+	// utils.ExitWhenError(err, "decode json rpc result error: %s", err)
+
+	// utils.ExitWithMsgWhen(jsonRpcResult.Id != id.String(), "json rpc id not match")
+
+	// utils.ExitWithMsgWhen(jsonRpcResult.Result == "", "json rpc no result: %+v\n", jsonRpcResult)
+
+	// explorer := net.Explorer
+	// if explorer != "" {
+	// 	explorer = strings.TrimSuffix(explorer, "/")
+	// 	fmt.Printf("Transaction link: %s/tx/%s\n", explorer, jsonRpcResult.Result)
+	// } else {
+	// 	json.NewEncoder(os.Stdout).Encode(&jsonRpcResult)
+	// }
 
 }

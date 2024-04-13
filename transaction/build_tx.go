@@ -26,13 +26,14 @@ import (
 // @param gasLimit optional 为0时从rpc获取
 // @param nonce optional 为空时从rpc获取
 // @param chainID optional 为0时从rpc获取
+// @param gasRatio
 // @param gasPrice used when eip1559 is false unit: gwei
 // @param gasTipCap used when eip1559 is true unit: gwei
 // @param gasFeeCap used when eip1559 is true unit: gwei
 // @param eip1559:
 // eip1559为true时，当gasTipCap 和 gasFeeCap都不为空时使用它们，否则从rpc获取这两个值
 // eip1559为false时，当gasPrice不为空时使用gasPrice，否则从rpc获取
-func BuildTransaction(ctx context.Context, rpc string, from string, to string, value *string, data string, abi string, args []string, gasLimit uint64, nonce string, chainID int, gasPrice string, gasTipCap string, gasFeeCap string, eip1559 bool, sendAll bool) (tx *types.Transaction /*newValue *big.Int,*/, err error) {
+func BuildTransaction(ctx context.Context, rpc string, from string, to string, value *string, data string, abi string, args []string, gasLimit uint64, nonce string, chainID int, gasRatio, gasPrice string, gasTipCap string, gasFeeCap string, eip1559 bool, sendAll bool) (tx *types.Transaction /*newValue *big.Int,*/, err error) {
 	// check params
 
 	var (
