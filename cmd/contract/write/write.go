@@ -49,7 +49,7 @@ func init() {
 	// is called directly, e.g.:
 	// txCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
-	account = writeCmd.Flags().String("account", "", "account name")
+	account = writeCmd.Flags().String("account", "", "account name(empty to use current account)")
 	accountIndex = writeCmd.Flags().Uint("accountIndex", 0, "account index")
 
 	nonce = writeCmd.Flags().String("nonce", "", "custom nonce")

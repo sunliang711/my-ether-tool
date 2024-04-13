@@ -41,7 +41,7 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// txCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	ContractCmd.PersistentFlags().String("network", "", "network name")
+	ContractCmd.PersistentFlags().String("network", "", "network name(empty to use current network)")
 	ContractCmd.PersistentFlags().String("contract", "", "contract address")
 	ContractCmd.PersistentFlags().String("abi", "", "abi json string(use --abi \"$(cat <FILE>)\" to specify file)")
 	ContractCmd.PersistentFlags().String("method", "", "method name")
