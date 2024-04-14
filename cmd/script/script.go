@@ -45,6 +45,11 @@ if [ -z "$ID" ]; then
     exit 1
 fi
 
+if ! command -v met; then
+    echo "Missing command met" 1>&2
+	exit 1
+fi
+
 set -e
 
 met network add --name eth --rpc "https://mainnet.infura.io/v3/${ID}" --explorer https://etherscan.io --symbol ETH
