@@ -43,10 +43,14 @@ func init() {
 }
 
 func approveToken(cmd *cobra.Command, args []string) {
-	var err error
-	utils.ExitWithMsgWhen(*contract == "", "need contract address")
-	utils.ExitWithMsgWhen(*spender == "", "need token spender")
-	utils.ExitWithMsgWhen(*amount == "", "need token amount")
+	var (
+		err    error
+		logger = utils.GetLogger("approveToken")
+	)
+
+	utils.ExitWhen(logger, *contract == "", "need contract address")
+	utils.ExitWhen(logger, *spender == "", "need token spender")
+	utils.ExitWhen(logger, *amount == "", "need token amount")
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*consts.DefaultTimeout)
 	defer cancel()
@@ -56,15 +60,16 @@ func approveToken(cmd *cobra.Command, args []string) {
 	if *decimals == 0 {
 		// read decimals
 		decimalsStr, err = erc20.ReadErc20(ctx, *contract, *network, erc20.Erc20Decimals, "", "")
-		utils.ExitWhenError(err, "get token decimals error: %v", err)
+		utils.ExitWhenErr(logger, err, "get token decimals error: %v", err)
 	}
 
 	realAmount, err := utils.Erc20AmountFromHuman(*amount, decimalsStr)
-	utils.ExitWhenError(err, "convert amount error: %v", err)
+	utils.ExitWhenErr(logger, err, "convert amount error: %v", err)
 
 	hash, err := erc20.WriteErc20(ctx, *contract, *network, *account, *accountIndex, erc20.Erc20Approve, *spender, realAmount, "")
-	utils.ExitWhenError(err, "approve token error: %v", err)
+	utils.ExitWhenErr(logger, err, "approve token error: %v", err)
 
-	fmt.Printf("tx hash: %s\n", hash)
+	// fmt.Printf("tx hash: %s\n", hash)
+	logger.Info().Msgf("tx hash: %s", hash)
 
 }

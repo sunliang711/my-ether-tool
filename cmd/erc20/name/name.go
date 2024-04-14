@@ -2,7 +2,6 @@ package name
 
 import (
 	"context"
-	"fmt"
 	"met/cmd/erc20"
 	"met/consts"
 	utils "met/utils"
@@ -33,14 +32,17 @@ func init() {
 }
 
 func getName(cmd *cobra.Command, args []string) {
-	utils.ExitWithMsgWhen(*contract == "", "need contract address")
+	logger := utils.GetLogger("getName")
+
+	utils.ExitWhen(logger, *contract == "", "need contract address")
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*consts.DefaultTimeout)
 	defer cancel()
 
 	tokenName, err := erc20.ReadErc20(ctx, *contract, *network, erc20.Erc20Name, "", "")
-	utils.ExitWhenError(err, "get token name error: %v", err)
+	utils.ExitWhenErr(logger, err, "get token name error: %v", err)
 
-	fmt.Printf("token name: %s\n", tokenName)
+	// fmt.Printf("token name: %s\n", tokenName)
+	logger.Info().Msgf("token name: %s", tokenName)
 
 }

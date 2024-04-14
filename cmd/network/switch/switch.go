@@ -27,8 +27,10 @@ func init() {
 }
 
 func switchCurrentNetwork(cmd *cobra.Command, args []string) {
-	utils.ExitWithMsgWhen(*name == "", "need name\n")
+	logger := utils.GetLogger("switchCurrentNetwork")
+
+	utils.ExitWhen(logger, *name == "", "need name")
 
 	err := database.SwitchNetwork(*name)
-	utils.ExitWhenError(err, "switch network error: %s\n", err)
+	utils.ExitWhenErr(logger, err, "switch network error: %s", err)
 }

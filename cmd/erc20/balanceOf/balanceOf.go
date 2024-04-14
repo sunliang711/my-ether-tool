@@ -2,7 +2,6 @@ package balanceOf
 
 import (
 	"context"
-	"fmt"
 	"met/cmd/erc20"
 	"met/consts"
 	utils "met/utils"
@@ -19,7 +18,7 @@ var balanceOfCmd = &cobra.Command{
 }
 
 var (
-	network      *string
+	network *string
 
 	contract *string
 	owner    *string
@@ -35,23 +34,26 @@ func init() {
 }
 
 func getBalance(cmd *cobra.Command, args []string) {
-	utils.ExitWithMsgWhen(*contract == "", "need contract address")
-	utils.ExitWithMsgWhen(*owner == "", "need owner address")
+	logger := utils.GetLogger("getBalance")
+
+	utils.ExitWhen(logger, *contract == "", "need contract address")
+	utils.ExitWhen(logger, *owner == "", "need owner address")
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*consts.DefaultTimeout)
 	defer cancel()
 
 	// read balance
 	balance, err := erc20.ReadErc20(ctx, *contract, *network, erc20.Erc20BalanceOf, *owner, "")
-	utils.ExitWhenError(err, "get token balance error: %v", err)
+	utils.ExitWhenErr(logger, err, "get token balance error: %v", err)
 
 	// read decimals
 	decimals, err := erc20.ReadErc20(ctx, *contract, *network, erc20.Erc20Decimals, "", "")
-	utils.ExitWhenError(err, "get token decimals error: %v", err)
+	utils.ExitWhenErr(logger, err, "get token decimals error: %v", err)
 
 	humanBalance, err := utils.Erc20AmountToHuman(balance, decimals)
-	utils.ExitWhenError(err, "convert balance error: %v", err)
+	utils.ExitWhenErr(logger, err, "convert balance error: %v", err)
 
-	fmt.Printf("token balance: %s\n", humanBalance)
+	// fmt.Printf("token balance: %s\n", humanBalance)
+	logger.Info().Msgf("token balance: %s", humanBalance)
 
 }

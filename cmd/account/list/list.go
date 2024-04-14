@@ -38,9 +38,10 @@ func init() {
 }
 
 func listAccount(cmd *cobra.Command, args []string) {
+	logger := utils.GetLogger("listAccount")
 	if *name != "" {
 		acc, err := database.QueryAccount(*name)
-		utils.ExitWhenError(err, "query account: %s error: %s", *name, err)
+		utils.ExitWhenErr(logger, err, "query account: %s error: %s", *name, err)
 
 		startIndex := acc.CurrentIndex
 		if *hdIndex >= 0 {
@@ -58,7 +59,7 @@ func listAccount(cmd *cobra.Command, args []string) {
 	} else {
 
 		accounts, err := database.QueryAllAccounts()
-		utils.ExitWhenError(err, "query accounts error: %s", err)
+		utils.ExitWhenErr(logger, err, "query accounts error: %s", err)
 
 		for i := range accounts {
 			account.ShowAccount(accounts[i], *insecure)

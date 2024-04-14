@@ -2,7 +2,6 @@ package decimals
 
 import (
 	"context"
-	"fmt"
 	"met/cmd/erc20"
 	"met/consts"
 	utils "met/utils"
@@ -33,14 +32,17 @@ func init() {
 }
 
 func getDecimals(cmd *cobra.Command, args []string) {
-	utils.ExitWithMsgWhen(*contract == "", "need contract address")
+	logger := utils.GetLogger("getDecimals")
+
+	utils.ExitWhen(logger, *contract == "", "need contract address")
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*consts.DefaultTimeout)
 	defer cancel()
 
-	tokenName, err := erc20.ReadErc20(ctx, *contract, *network, erc20.Erc20Decimals, "", "")
-	utils.ExitWhenError(err, "get token decimals error: %v", err)
+	tokenDecimals, err := erc20.ReadErc20(ctx, *contract, *network, erc20.Erc20Decimals, "", "")
+	utils.ExitWhenErr(logger, err, "get token decimals error: %v", err)
 
-	fmt.Printf("token decimals: %s\n", tokenName)
+	// fmt.Printf("token decimals: %s\n", tokenName)
+	logger.Info().Msgf("token decimals: %s", tokenDecimals)
 
 }

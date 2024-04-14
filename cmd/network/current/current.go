@@ -20,8 +20,9 @@ func init() {
 }
 
 func showCurrentNetwork(cmd *cobra.Command, args []string) {
+	logger := utils.GetLogger("showCurrentNetwork")
 	current, err := database.CurrentNetwork()
-	utils.ExitWhenError(err, "show current entwork error: %s", err)
+	utils.ExitWhenErr(logger, err, "show current entwork error: %s", err)
 
 	network.ShowNetwork(current)
 

@@ -5,8 +5,6 @@ package codec
 
 import (
 	"encoding/hex"
-	"fmt"
-	"os"
 
 	"met/cmd/codec"
 	transaction "met/transaction"
@@ -52,11 +50,14 @@ func init() {
 }
 
 func abiEncode(cmd *cobra.Command, args []string) {
-	utils.ExitWithMsgWhen(*abiStr20 == "", "need --abi <abi_string>\n")
+	logger := utils.GetLogger("abiEncode")
+	utils.ExitWhen(logger, *abiStr20 == "", "need --abi <abi_string>")
 	encoded, err := transaction.AbiEncode(*abiStr20, *abiArgs20)
 	if err != nil {
-		fmt.Fprintf(os.Stdout, "error: %s\n", err)
-		os.Exit(1)
+		// fmt.Fprintf(os.Stdout, "error: %s\n", err)
+		// os.Exit(1)
+		logger.Fatal().Msgf("error: %s", err)
 	}
-	fmt.Printf("result: 0x%s\n", hex.EncodeToString(encoded))
+	// fmt.Printf("result: 0x%s\n", hex.EncodeToString(encoded))
+	logger.Info().Msgf("result: 0x%s", hex.EncodeToString(encoded))
 }

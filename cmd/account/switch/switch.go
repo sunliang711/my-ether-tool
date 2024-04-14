@@ -26,9 +26,10 @@ func init() {
 }
 
 func switchAccount(cmd *cobra.Command, args []string) {
-	utils.ExitWithMsgWhen(*name == "", "need name\n")
+	logger := utils.GetLogger("switchAccount")
+	utils.ExitWhen(logger, *name == "", "need name")
 
 	err := database.SwitchAccount(*name, *accountIndex)
-	utils.ExitWhenError(err, "switch account error: %s", err)
+	utils.ExitWhenErr(logger, err, "switch account error: %s", err)
 
 }

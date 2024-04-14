@@ -28,8 +28,9 @@ func init() {
 }
 
 func removeNetwork(cmd *cobra.Command, args []string) {
-	utils.ExitWithMsgWhen(*name == "", "need name\n")
+	logger := utils.GetLogger("removeNetwork")
+	utils.ExitWhen(logger, *name == "", "need name\n")
 
 	err := database.RemoveNetwork(*name)
-	utils.ExitWhenError(err, "remove network error: %s", err)
+	utils.ExitWhenErr(logger, err, "remove network error: %s", err)
 }

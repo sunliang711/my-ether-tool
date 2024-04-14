@@ -92,13 +92,14 @@ func init() {
 }
 
 func offsign(cmd *cobra.Command, args []string) {
+	logger := utils.GetLogger("offsign")
 	// utils.ExitWithMsgWhen(*rpc == "", "need rpc\n")
-	utils.ExitWithMsgWhen(*from == "", "need from\n")
-	utils.ExitWithMsgWhen(*to == "", "need to\n")
+	utils.ExitWhen(logger, *from == "", "need from")
+	utils.ExitWhen(logger, *to == "", "need to")
 	// utils.ExitWithMsgWhen(*value == "", "need value")
 
 	net, err := database.QueryNetworkOrCurrent(*network)
-	utils.ExitWhenError(err, "load network error: %s\n", err)
+	utils.ExitWhenErr(logger, err, "load network error: %s", err)
 	rpc := net.Rpc
 
 	fmt.Printf("environment info:\n")
@@ -109,38 +110,38 @@ func offsign(cmd *cobra.Command, args []string) {
 	defer cancel()
 
 	tx, err := transaction.BuildTransaction(ctx, rpc, *from, *to, value, *data, *abi, *abiArgs, *gasLimit, *nonce, *chainID, "", *gasPrice, *tipCap, *feeCap, *eip1559, false)
-	utils.ExitWhenError(err, "build transaction error: %s\n", err)
+	utils.ExitWhenErr(logger, err, "build transaction error: %s", err)
 
 	signer := types.NewCancunSigner(tx.ChainId())
 	txHash := signer.Hash(tx)
 	fmt.Printf("Hash to be signed: %s\n", txHash)
 
 	txJsonBytes, err := tx.MarshalJSON()
-	utils.ExitWhenError(err, "Marshal transaction to json error: %s", err)
+	utils.ExitWhenErr(logger, err, "Marshal transaction to json error: %s", err)
 	fmt.Printf("Transaction json: %s\n", string(txJsonBytes))
 
 	// read signature
 	rd := bufio.NewReader(os.Stdin)
 	fmt.Printf("Enter signature: ")
 	signature, err := rd.ReadString('\n')
-	utils.ExitWhenError(err, "Read signature error: %s", err)
+	utils.ExitWhenErr(logger, err, "Read signature error: %s", err)
 
 	signature = strings.TrimSpace(signature)
 	signature = strings.TrimPrefix(signature, "0x")
 
 	signatureBytes, err := hex.DecodeString(signature)
-	utils.ExitWhenError(err, "Invalid signature: %s", err)
+	utils.ExitWhenErr(logger, err, "Invalid signature: %s", err)
 
 	// tx + signature
 	tx, err = tx.WithSignature(signer, signatureBytes)
-	utils.ExitWhenError(err, "Combine signature to transaction error: %s", err)
+	utils.ExitWhenErr(logger, err, "Combine signature to transaction error: %s", err)
 
 	txBytes, err := tx.MarshalBinary()
-	utils.ExitWhenError(err, "Marshal transaction to binary error: %s\n", err)
+	utils.ExitWhenErr(logger, err, "Marshal transaction to binary error: %s", err)
 
 	txHex := "0x" + hex.EncodeToString(txBytes)
 	id, err := uuid.NewUUID()
-	utils.ExitWhenError(err, "create uuid error: %s\n", err)
+	utils.ExitWhenErr(logger, err, "create uuid error: %s", err)
 
 	jsonRpcData := ttypes.JsonRpcData{
 		JsonRpc: "2.0",
@@ -151,18 +152,19 @@ func offsign(cmd *cobra.Command, args []string) {
 	// send txHex to rpc
 	httpClient := utils.NewHttpClient(rpc, 3)
 	resp, err := httpClient.PostStruct(nil, &jsonRpcData)
-	utils.ExitWhenError(err, "Send raw transaction error: %s", err)
+	utils.ExitWhenErr(logger, err, "Send raw transaction error: %s", err)
 
 	var jsonRpcResult ttypes.JsonRpcResult
 	err = json.NewDecoder(resp.Body).Decode(&jsonRpcResult)
-	utils.ExitWhenError(err, "decode json rpc result error: %s", err)
+	utils.ExitWhenErr(logger, err, "decode json rpc result error: %s", err)
 
-	utils.ExitWithMsgWhen(jsonRpcResult.Id != id.String(), "json rpc id not match")
+	utils.ExitWhen(logger, jsonRpcResult.Id != id.String(), "json rpc id not match")
 
 	explorer := net.Explorer
 	if explorer != "" {
 		explorer = strings.TrimSuffix(explorer, "/")
-		fmt.Printf("Transaction link: %s/tx/%s\n", explorer, jsonRpcResult.Result)
+		// fmt.Printf("Transaction link: %s/tx/%s\n", explorer, jsonRpcResult.Result)
+		logger.Info().Msgf("Transaction link: %s/tx/%x", explorer, jsonRpcResult.Result)
 	} else {
 		json.NewEncoder(os.Stdout).Encode(&jsonRpcResult)
 	}

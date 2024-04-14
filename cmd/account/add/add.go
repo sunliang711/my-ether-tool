@@ -39,18 +39,21 @@ func init() {
 }
 
 func importAccount(cmd *cobra.Command, args []string) {
-	var err error
+	var (
+		err    error
+		logger = utils.GetLogger("importAccount")
+	)
 
-	utils.ExitWithMsgWhen(*name == "", "need name\n")
+	utils.ExitWhen(logger, *name == "", "need name")
 	// utils.ExitWithMsgWhen(*value == "", "need value\n")
 
 	if *accountType != types.MnemonicType && *accountType != types.PrivateKeyType {
-		utils.ExitWithMsgWhen(true, "invalid account type, use 'mnemonic' or 'private key'\n")
+		utils.ExitWhen(logger, true, "invalid account type, use 'mnemonic' or 'private key'")
 	}
 
 	if *value == "" {
 		*value, err = utils.ReadSecret(fmt.Sprintf("Enter %s: ", *accountType))
-		utils.ExitWhenError(err, "Read user input error: %s\n", err)
+		utils.ExitWhenErr(logger, err, "Read user input error: %s", err)
 	}
 
 	if *accountType == types.MnemonicType {
@@ -60,7 +63,7 @@ func importAccount(cmd *cobra.Command, args []string) {
 
 		// check hd path
 		err = hd.CheckHdPath(*pathFormat)
-		utils.ExitWhenError(err, "invalid hd path: %s\n", err)
+		utils.ExitWhenErr(logger, err, "invalid hd path: %s", err)
 
 	}
 
@@ -75,6 +78,6 @@ func importAccount(cmd *cobra.Command, args []string) {
 	}
 
 	err = database.AddAccount(&account)
-	utils.ExitWhenError(err, "Add account error: %s\n", err)
+	utils.ExitWhenErr(logger, err, "Add account error: %s", err)
 
 }

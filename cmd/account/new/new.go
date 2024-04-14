@@ -1,7 +1,6 @@
 package new
 
 import (
-	"fmt"
 	"met/cmd/account"
 	database "met/database"
 	hd "met/hd"
@@ -39,12 +38,15 @@ func init() {
 }
 
 func createWallet(cmd *cobra.Command, args []string) {
-	var newAccount *database.Account
+	var (
+		newAccount *database.Account
+		logger     = utils.GetLogger("createWallet")
+	)
 
 	switch *accountType {
 	case types.MnemonicType:
 		mnemonic, err := hd.CreateMnemonic(*words)
-		utils.ExitWhenError(err, "create mnemonic error: %s", err)
+		utils.ExitWhenErr(logger, err, "create mnemonic error: %s", err)
 
 		newAccount = &database.Account{
 			Name:       *name,
@@ -56,7 +58,7 @@ func createWallet(cmd *cobra.Command, args []string) {
 
 	case types.PrivateKeyType:
 		privateKey, err := crypto.GenerateKey()
-		utils.ExitWhenError(err, "generate private key error: %s\n", err)
+		utils.ExitWhenErr(logger, err, "generate private key error: %s", err)
 		privateKeyBytes := crypto.FromECDSA(privateKey)
 
 		newAccount = &database.Account{
@@ -65,26 +67,27 @@ func createWallet(cmd *cobra.Command, args []string) {
 			Value: hexutil.Encode(privateKeyBytes),
 		}
 	default:
-		utils.ExitWithMsgWhen(true, "invalid account type, use 'mnemonic' or 'private key'\n")
+		utils.ExitWhen(logger, true, "invalid account type, use 'mnemonic' or 'private key'\n")
 	}
 
 	fullAccount, err := types.AccountToDetails(newAccount)
-	utils.ExitWhenError(err, "calculate address error: %s", err)
+	utils.ExitWhenErr(logger, err, "calculate address error: %s", err)
 
 	if *name != "" {
 		// save
 		err := database.AddAccount(newAccount)
-		utils.ExitWhenError(err, "add account to db error: %s\n", err)
+		utils.ExitWhenErr(logger, err, "add account to db error: %s", err)
 
 		// query
 		newAccount, err := database.QueryAccount(*name)
-		utils.ExitWhenError(err, "query account by name: %s error: %s\n", *name, err)
+		utils.ExitWhenErr(logger, err, "query account by name: %s error: %s", *name, err)
 
 		// format
 		fullAccount, err = types.AccountToDetails(&newAccount)
-		utils.ExitWhenError(err, "calculate address error: %s", err)
+		utils.ExitWhenErr(logger, err, "calculate address error: %s", err)
 	}
 
-	fmt.Printf("%s\n", fullAccount.AsString(*name == ""))
+	// fmt.Printf("%s\n", fullAccount.AsString(*name == ""))
+	logger.Info().Msgf("%s", fullAccount.AsString(*name == ""))
 
 }

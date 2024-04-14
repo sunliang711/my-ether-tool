@@ -4,7 +4,6 @@ Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 package account
 
 import (
-	"fmt"
 	cmd "met/cmd"
 	database "met/database"
 	types "met/types"
@@ -43,10 +42,12 @@ func init() {
 }
 
 func ShowAccount(account database.Account, insecure bool) {
+	logger := utils.GetLogger("ShowAccount")
 	fullAccount, err := types.AccountToDetails(&account)
-	utils.ExitWhenError(err, "calculate address error: %s", err)
+	utils.ExitWhenErr(logger, err, "calculate address error: %s", err)
 
-	fmt.Printf("%s", fullAccount.AsString(insecure))
-	fmt.Println()
+	logger.Info().Msgf(fullAccount.AsString(insecure))
+	// fmt.Printf("%s", fullAccount.AsString(insecure))
+	// fmt.Println()
 
 }

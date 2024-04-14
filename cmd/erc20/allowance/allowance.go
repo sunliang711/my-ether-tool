@@ -2,7 +2,6 @@ package allowance
 
 import (
 	"context"
-	"fmt"
 	"met/cmd/erc20"
 	"met/consts"
 	utils "met/utils"
@@ -37,16 +36,18 @@ func init() {
 }
 
 func getAllowance(cmd *cobra.Command, args []string) {
-	utils.ExitWithMsgWhen(*contract == "", "need contract address")
-	utils.ExitWithMsgWhen(*owner == "", "missing owner address")
-	utils.ExitWithMsgWhen(*spender == "", "missing spender address")
+	logger := utils.GetLogger("getAllowance")
+
+	utils.ExitWhen(logger, *contract == "", "need contract address")
+	utils.ExitWhen(logger, *owner == "", "missing owner address")
+	utils.ExitWhen(logger, *spender == "", "missing spender address")
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*consts.DefaultTimeout)
 	defer cancel()
 
 	data, err := erc20.ReadErc20(ctx, *contract, *network, erc20.Erc20Allowance, *owner, *spender)
-	utils.ExitWhenError(err, "get allowance error: %v", err)
+	utils.ExitWhenErr(logger, err, "get allowance error: %v", err)
 
-	fmt.Printf("allowance : %s\n", data)
+	logger.Info().Msgf("allowance: %s", data)
 
 }

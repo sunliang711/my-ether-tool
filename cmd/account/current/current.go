@@ -26,8 +26,10 @@ func init() {
 }
 
 func showCurrentAccount(cmd *cobra.Command, args []string) {
+	logger := utils.GetLogger("showCurrentAccount")
+
 	current, err := database.CurrentAccount()
-	utils.ExitWhenError(err, "show current account error: %s", err)
+	utils.ExitWhenErr(logger, err, "show current account error: %s", err)
 
 	account.ShowAccount(current, *insecure)
 }

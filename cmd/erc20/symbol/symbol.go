@@ -2,7 +2,6 @@ package symbol
 
 import (
 	"context"
-	"fmt"
 	"met/cmd/erc20"
 	"met/consts"
 	utils "met/utils"
@@ -19,7 +18,7 @@ var symbolCmd = &cobra.Command{
 }
 
 var (
-	network      *string
+	network *string
 
 	contract *string
 )
@@ -33,14 +32,17 @@ func init() {
 }
 
 func getSymbol(cmd *cobra.Command, args []string) {
-	utils.ExitWithMsgWhen(*contract == "", "need contract address")
+	logger := utils.GetLogger("getSymbol")
+
+	utils.ExitWhen(logger, *contract == "", "need contract address")
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*consts.DefaultTimeout)
 	defer cancel()
 
 	data, err := erc20.ReadErc20(ctx, *contract, *network, erc20.Erc20Name, "", "")
-	utils.ExitWhenError(err, "get token symbol error: %v", err)
+	utils.ExitWhenErr(logger, err, "get token symbol error: %v", err)
 
-	fmt.Printf("token symbol: %s\n", data)
+	// fmt.Printf("token symbol: %s\n", data)
+	logger.Info().Msgf("token symbol: %s", data)
 
 }

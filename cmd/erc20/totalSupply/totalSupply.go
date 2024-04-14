@@ -2,7 +2,6 @@ package totalSupply
 
 import (
 	"context"
-	"fmt"
 	"met/cmd/erc20"
 	"met/consts"
 	utils "met/utils"
@@ -33,22 +32,25 @@ func init() {
 }
 
 func getTotalSupply(cmd *cobra.Command, args []string) {
-	utils.ExitWithMsgWhen(*contract == "", "need contract address")
+	logger := utils.GetLogger("getTotalSupply")
+
+	utils.ExitWhen(logger, *contract == "", "need contract address")
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*consts.DefaultTimeout)
 	defer cancel()
 
 	// read totalSupply
 	totalSupply, err := erc20.ReadErc20(ctx, *contract, *network, erc20.Erc20TotalSupply, "", "")
-	utils.ExitWhenError(err, "get token total supply error: %v", err)
+	utils.ExitWhenErr(logger, err, "get token total supply error: %v", err)
 
 	// read decimals
 	decimals, err := erc20.ReadErc20(ctx, *contract, *network, erc20.Erc20Decimals, "", "")
-	utils.ExitWhenError(err, "get token decimals error: %v", err)
+	utils.ExitWhenErr(logger, err, "get token decimals error: %v", err)
 
 	humanTotalSupply, err := utils.Erc20AmountToHuman(totalSupply, decimals)
-	utils.ExitWhenError(err, "convert totalSupply error: %v", err)
+	utils.ExitWhenErr(logger, err, "convert totalSupply error: %v", err)
 
-	fmt.Printf("token total supply: %s\n", humanTotalSupply)
+	// fmt.Printf("token total supply: %s\n", humanTotalSupply)
+	logger.Info().Msgf("token total supply: %s", humanTotalSupply)
 
 }

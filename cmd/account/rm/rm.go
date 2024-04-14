@@ -25,9 +25,11 @@ func init() {
 }
 
 func removeAccount(cmd *cobra.Command, args []string) {
-	utils.ExitWithMsgWhen(*name == "", "need name\n")
+	logger := utils.GetLogger("removeAccount")
+
+	utils.ExitWhen(logger, *name == "", "need name")
 
 	err := database.RemoveAccount(*name)
-	utils.ExitWhenError(err, "remove account error: %s\n", err)
+	utils.ExitWhenErr(logger, err, "remove account error: %s", err)
 
 }

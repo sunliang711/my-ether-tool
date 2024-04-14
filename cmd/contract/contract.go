@@ -296,7 +296,7 @@ func WriteContract(ctx context.Context, networkName, contract, abiJson, methodNa
 
 	if !noconfirm {
 		input, err := utils.ReadChar("Send? [y/N] ")
-		utils.ExitWhenError(err, "read input error: %s\n", err)
+		utils.ExitWhenErr(logger, err, "read input error: %s", err)
 
 		if input != 'y' {
 			os.Exit(0)

@@ -25,14 +25,16 @@ func init() {
 }
 
 func listNetwork(cmd *cobra.Command, args []string) {
+	logger := utils.GetLogger("listNetwork")
+
 	if *name != "" {
 		net, err := database.QueryNetwork(*name)
-		utils.ExitWhenError(err, "query network: %s error: %s", *name, err)
+		utils.ExitWhenErr(logger, err, "query network: %s error: %s", *name, err)
 		network.ShowNetwork(net)
 	} else {
 
 		networks, err := database.QueryAllNetworks()
-		utils.ExitWhenError(err, "query networks error: %s", err)
+		utils.ExitWhenErr(logger, err, "query networks error: %s", err)
 
 		for i := range networks {
 			network.ShowNetwork(networks[i])
