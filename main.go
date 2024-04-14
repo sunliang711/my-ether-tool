@@ -9,6 +9,7 @@ import (
 
 	_ "met/cmd/account"
 	_ "met/cmd/account/add"
+	_ "met/cmd/account/balance"
 	_ "met/cmd/account/current"
 	_ "met/cmd/account/list"
 	_ "met/cmd/account/new"
