@@ -43,12 +43,15 @@ func getBalance(cmd *cobra.Command, args []string) {
 		logger = utils.GetLogger("getBalance")
 	)
 
+	logger.Info().Msgf("query account: %v account index: %v", *accountName, *accountIndex)
 	account, err := database.QueryAccountOrCurrent(*accountName, *accountIndex)
 	utils.ExitWhenErr(logger, err, "query account: %v error: %v", *accountName, err)
 
+	logger.Info().Msgf("query network: %v", *networkName)
 	network, err := database.QueryNetworkOrCurrent(*networkName)
 	utils.ExitWhenErr(logger, err, "query ntwork: %v error: %v", *networkName, err)
 
+	logger.Debug().Msgf("dial rpc: %v", network.Rpc)
 	client, err := ethclient.Dial(network.Rpc)
 	utils.ExitWhenErr(logger, err, "dial rpc: %v error: %v", network.Rpc, err)
 
@@ -59,12 +62,15 @@ func getBalance(cmd *cobra.Command, args []string) {
 	utils.ExitWhenErr(logger, err, "get account details error: %v", err)
 
 	address := common.HexToAddress(accountDetails.Address)
+
+	logger.Info().Msgf("query balance for address: %v", accountDetails.Address)
 	balance, err := client.BalanceAt(ctx, address, nil)
 	utils.ExitWhenErr(logger, err, "query account balance error: %v", err)
 
 	humanBalance, err := utils.FormatUnits(balance.String(), utils.UnitEth)
 	utils.ExitWhenErr(logger, err, "format balance: %v error: %v", balance.String(), err)
 
+	logger.Info().Msgf("query nonce for address: %v", accountDetails.Address)
 	nonce, err := client.PendingNonceAt(ctx, address)
 	utils.ExitWhenErr(logger, err, "query nonce error: %v", err)
 
