@@ -179,6 +179,7 @@ func ReadContract(ctx context.Context, networkName, contract, abiJson, methodNam
 	}
 	logger.Debug().Msgf("network info: %v", net)
 
+	logger.Info().Msgf("network: %v", net.Name)
 	logger.Info().Msgf("dial rpc: %v", net.Rpc)
 	client, err := ethclient.Dial(net.Rpc)
 	if err != nil {
@@ -221,6 +222,7 @@ func WriteContract(ctx context.Context, networkName, contract, abiJson, methodNa
 	}
 	logger.Debug().Msgf("network info: %v", net)
 
+	logger.Info().Msgf("network: %v", net.Name)
 	logger.Info().Msgf("dial rpc: %v", net.Rpc)
 	client, err := ethclient.Dial(net.Rpc)
 	if err != nil {

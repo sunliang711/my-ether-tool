@@ -36,5 +36,15 @@
                 "type": "uint26"
             }
         ]
+    },
+    {
+        "name": "mint",
+        "type": "function",
+        "inputs": [
+            {
+                "type": "uint256"
+            }
+        ],
+        "outputs": []
     }
 ]
