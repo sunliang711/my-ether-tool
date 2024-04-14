@@ -5,6 +5,7 @@ package contract
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	cmd "met/cmd"
 	database "met/database"
@@ -44,7 +45,7 @@ func init() {
 	// txCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	ContractCmd.PersistentFlags().String("network", "", "network name(empty to use current network)")
 	ContractCmd.PersistentFlags().String("contract", "", "contract address")
-	ContractCmd.PersistentFlags().String("abi", "", "abi json string(use --abi \"$(cat <FILE>)\" to specify file)")
+	ContractCmd.PersistentFlags().String("abi", "", "abi json string(use --abi \"$(cat <FILE>)\" to specify file) or built-in abi(eg: erc20 erc721 erc1155)")
 	ContractCmd.PersistentFlags().String("method", "", "method name")
 	ContractCmd.PersistentFlags().StringArray("args", nil, "arguments of abi (--args xx1 --args xx2 ...)")
 }
@@ -61,10 +62,16 @@ func parseAbi(abiJson string) (*abi.ABI, error) {
 // 准备abi中指定method的实际参数
 // 因为args是传递过来的string类型的
 // 要把他们转换成实际的值，比如*big.Int common.Address []byte 等等
-func abiArgs(abiObj *abi.ABI, methodName string, args ...string) (string, []interface{}, error) {
+func abiArgs(abiObj *abi.ABI, methodName string, args ...string) (string, []string, []interface{}, error) {
+	var (
+		realArgs   []interface{}
+		paramNames []string
+		logger     = utils.GetLogger("abiArgs")
+	)
+
 	methodNum := len(abiObj.Methods)
 	if methodNum == 0 {
-		return "", nil, fmt.Errorf("no method found in abi")
+		return "", nil, nil, fmt.Errorf("no method found in abi")
 	}
 
 	var method *abi.Method
@@ -72,9 +79,9 @@ func abiArgs(abiObj *abi.ABI, methodName string, args ...string) (string, []inte
 	if methodNum == 1 {
 		for name, m := range abiObj.Methods {
 			if methodName != "" {
-				fmt.Printf("ignore method name\n")
+				logger.Debug().Msgf("ignore method name")
 			}
-			fmt.Printf("use unique method: %v\n", name)
+			logger.Debug().Msgf("use unique method: %v", name)
 			method = &m
 		}
 	} else {
@@ -84,25 +91,27 @@ func abiArgs(abiObj *abi.ABI, methodName string, args ...string) (string, []inte
 	}
 
 	if method == nil {
-		return "", nil, fmt.Errorf("can not get abi method by name: %v", methodName)
+		return "", nil, nil, fmt.Errorf("can not get abi method by name: %v", methodName)
 	}
 
 	if len(args) != len(method.Inputs) {
-		return "", nil, fmt.Errorf("arg count not match abi input count")
+		return "", nil, nil, fmt.Errorf("arg count not match abi input count")
 	}
-	var realArgs []interface{}
+
 	for i, m := range method.Inputs {
 		arg := args[i]
 
 		v, err := parseAbiType(m.Type, arg)
 		if err != nil {
-			return "", nil, err
+			return "", nil, nil, err
 		}
+		logger.Debug().Msgf("input type: %v, input value: %v", m.Type.String(), arg)
 
 		realArgs = append(realArgs, v)
+		paramNames = append(paramNames, m.Type.String())
 	}
 
-	return method.Name, realArgs, nil
+	return method.Name, paramNames, realArgs, nil
 }
 
 type NameValue struct {
@@ -188,7 +197,7 @@ func ReadContract(ctx context.Context, networkName, contract, abiJson, methodNam
 	defer client.Close()
 
 	logger.Info().Msg("prepare abi args")
-	methodName, realArgs, err := abiArgs(abiObj, methodName, args...)
+	methodName, _, realArgs, err := abiArgs(abiObj, methodName, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -265,7 +274,7 @@ func WriteContract(ctx context.Context, networkName, contract, abiJson, methodNa
 		return fmt.Errorf("parse abi error: %w", err)
 	}
 
-	methodName, realArgs, err := abiArgs(abiObj, methodName, args...)
+	methodName, paramNames, realArgs, err := abiArgs(abiObj, methodName, args...)
 	if err != nil {
 		return err
 	}
@@ -295,6 +304,11 @@ func WriteContract(ctx context.Context, networkName, contract, abiJson, methodNa
 	logger.Info().Msgf("GasFeeCap: %v", transactor.GasFeeCap.String())
 	logger.Info().Msgf("GasTipCap: %v", transactor.GasTipCap.String())
 	logger.Info().Msgf("Value: %v", value)
+	logger.Info().Msgf("Method: %v", methodName)
+	for i, param := range paramNames {
+		logger.Info().Msgf("Arg: %v value: %v", param, realArgs[i])
+	}
+	logger.Info().Msgf("Data: %v", hex.EncodeToString(input))
 
 	if !noconfirm {
 		input, err := utils.ReadChar("Send? [y/N] ")

@@ -85,6 +85,22 @@ func writeContract(cmd *cobra.Command, args []string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*consts.DefaultTimeout)
 	defer cancel()
 
-	err = contract.WriteContract(ctx, network, contractAddress, abi, method, *account, *nonce, *value, *gasLimitRatio, *gasLimit, *gasRatio, *gasPrice, *gasFeeCap, *gasTipCap, *accountIndex, *eip1559, *noconfirm, abiArgs...)
+	abiJson := abi
+	// built-in abi
+	switch abi {
+	case consts.Erc20:
+		logger.Debug().Msgf("use built-in %v abi", abi)
+		abiJson = consts.Erc20Abi
+	case consts.Erc721:
+		logger.Debug().Msgf("use built-in %v abi", abi)
+		abiJson = consts.Erc721Abi
+	case consts.Erc1155:
+		logger.Debug().Msgf("use built-in %v abi", abi)
+		abiJson = consts.Erc1155Abi
+	default:
+		logger.Debug().Msgf("use custom abi")
+	}
+
+	err = contract.WriteContract(ctx, network, contractAddress, abiJson, method, *account, *nonce, *value, *gasLimitRatio, *gasLimit, *gasRatio, *gasPrice, *gasFeeCap, *gasTipCap, *accountIndex, *eip1559, *noconfirm, abiArgs...)
 	utils.ExitWhenErr(logger, err, "write contract error: %v", err)
 }

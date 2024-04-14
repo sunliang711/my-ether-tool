@@ -69,7 +69,23 @@ func readContract(cmd *cobra.Command, args []string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*consts.DefaultTimeout)
 	defer cancel()
 
-	outputs, err := contract.ReadContract(ctx, network, contractAddress, abi, method, abiArgs...)
+	abiJson := abi
+	// built-in abi
+	switch abi {
+	case consts.Erc20:
+		logger.Debug().Msgf("use built-in %v abi", abi)
+		abiJson = consts.Erc20Abi
+	case consts.Erc721:
+		logger.Debug().Msgf("use built-in %v abi", abi)
+		abiJson = consts.Erc721Abi
+	case consts.Erc1155:
+		logger.Debug().Msgf("use built-in %v abi", abi)
+		abiJson = consts.Erc1155Abi
+	default:
+		logger.Debug().Msgf("use custom abi")
+	}
+
+	outputs, err := contract.ReadContract(ctx, network, contractAddress, abiJson, method, abiArgs...)
 	utils.ExitWhenErr(logger, err, "read contract error: %v", err)
 
 	for _, output := range outputs {
