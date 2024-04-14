@@ -1,18 +1,15 @@
 package tx
 
 import (
-	"context"
 	"encoding/hex"
 	"fmt"
 	"met/cmd/tx"
-	"met/consts"
 	database "met/database"
 	transaction "met/transaction"
 	ttypes "met/types"
 	utils "met/utils"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -106,14 +103,14 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 	logger.Info().Msgf("account name: %s", details.Name)
 	logger.Info().Msgf("address: %s", details.Address)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*consts.DefaultTimeout)
+	ctx, cancel := utils.DefaultTimeoutContext()
 	defer cancel()
 
 	// build tx
 	tx, err := transaction.BuildTransaction(ctx, rpc, from, *to, value, *data, *abi, *abiArgs, *gasLimit, *nonce, *chainID, *gasRatio, *gasPrice, *tipCap, *feeCap, *eip1559, *all)
 	utils.ExitWhenErr(logger, err, "build tx error: %s", err)
 
-	client, err := ethclient.Dial(rpc)
+	client, err := ethclient.DialContext(ctx, rpc)
 	if err != nil {
 		return
 	}
@@ -156,7 +153,7 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 	logger.Info().Msgf("GasFeeCap: %s Gwei", feeCap)
 
 	if !*noconfirm {
-		input, err := utils.ReadChar("Send? [y/N] ")
+		input, err := utils.ReadChar("Send ? [y/N] ")
 		utils.ExitWhenErr(logger, err, "read input error: %s", err)
 
 		if input != 'y' {
@@ -171,11 +168,11 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	logger.Info().Msgf("waiting for confirmation")
-	bind.WaitMined(ctx, client, tx)
+	ctx2, cancel2 := utils.DefaultTimeoutContext()
+	defer cancel2()
 
-	logger.Debug().Msgf("get receipt")
-	receipt, err := client.TransactionReceipt(ctx, tx.Hash())
+	logger.Info().Msgf("waiting for confirmation")
+	receipt, err := bind.WaitMined(ctx2, client, tx)
 	if err != nil {
 		logger.Error().Err(err).Msgf("get receipt")
 	} else {

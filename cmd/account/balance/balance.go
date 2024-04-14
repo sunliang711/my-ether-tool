@@ -1,14 +1,11 @@
 package balance
 
 import (
-	"context"
 	"fmt"
 	"met/cmd/account"
-	"met/consts"
 	"met/database"
 	"met/types"
 	utils "met/utils"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -51,12 +48,12 @@ func getBalance(cmd *cobra.Command, args []string) {
 	network, err := database.QueryNetworkOrCurrent(*networkName)
 	utils.ExitWhenErr(logger, err, "query ntwork: %v error: %v", *networkName, err)
 
-	logger.Debug().Msgf("dial rpc: %v", network.Rpc)
-	client, err := ethclient.Dial(network.Rpc)
-	utils.ExitWhenErr(logger, err, "dial rpc: %v error: %v", network.Rpc, err)
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*consts.DefaultTimeout)
+	ctx, cancel := utils.DefaultTimeoutContext()
 	defer cancel()
+
+	logger.Debug().Msgf("dial rpc: %v", network.Rpc)
+	client, err := ethclient.DialContext(ctx, network.Rpc)
+	utils.ExitWhenErr(logger, err, "dial rpc: %v error: %v", network.Rpc, err)
 
 	accountDetails, err := types.AccountToDetails(account)
 	utils.ExitWhenErr(logger, err, "get account details error: %v", err)

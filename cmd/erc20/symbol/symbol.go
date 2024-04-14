@@ -1,11 +1,8 @@
 package symbol
 
 import (
-	"context"
 	"met/cmd/erc20"
-	"met/consts"
 	utils "met/utils"
-	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -36,7 +33,7 @@ func getSymbol(cmd *cobra.Command, args []string) {
 
 	utils.ExitWhen(logger, *contract == "", "need contract address")
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*consts.DefaultTimeout)
+	ctx, cancel := utils.DefaultTimeoutContext()
 	defer cancel()
 
 	data, err := erc20.ReadErc20(ctx, *contract, *network, erc20.Erc20Name, "", "")

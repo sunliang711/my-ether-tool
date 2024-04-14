@@ -190,7 +190,7 @@ func ReadContract(ctx context.Context, networkName, contract, abiJson, methodNam
 
 	logger.Info().Msgf("network: %v", net.Name)
 	logger.Info().Msgf("dial rpc: %v", net.Rpc)
-	client, err := ethclient.Dial(net.Rpc)
+	client, err := ethclient.DialContext(ctx, net.Rpc)
 	if err != nil {
 		return nil, fmt.Errorf("dial rpc error: %w", err)
 	}
@@ -233,7 +233,7 @@ func WriteContract(ctx context.Context, networkName, contract, abiJson, methodNa
 
 	logger.Info().Msgf("network: %v", net.Name)
 	logger.Info().Msgf("dial rpc: %v", net.Rpc)
-	client, err := ethclient.Dial(net.Rpc)
+	client, err := ethclient.DialContext(ctx,net.Rpc)
 	if err != nil {
 		return fmt.Errorf("dial rpc error: %w", err)
 	}
@@ -306,12 +306,12 @@ func WriteContract(ctx context.Context, networkName, contract, abiJson, methodNa
 	logger.Info().Msgf("Value: %v", value)
 	logger.Info().Msgf("Method: %v", methodName)
 	for i, param := range paramNames {
-		logger.Info().Msgf("Arg: %v value: %v", param, realArgs[i])
+		logger.Info().Msgf("Arg%d: %v (%v)", i, realArgs[i], param)
 	}
 	logger.Info().Msgf("Data: %v", hex.EncodeToString(input))
 
 	if !noconfirm {
-		input, err := utils.ReadChar("Send? [y/N] ")
+		input, err := utils.ReadChar("Send ? [y/N] ")
 		utils.ExitWhenErr(logger, err, "read input error: %s", err)
 
 		if input != 'y' {
@@ -325,14 +325,15 @@ func WriteContract(ctx context.Context, networkName, contract, abiJson, methodNa
 		return fmt.Errorf("transact error: %v", err)
 	}
 
-	logger.Info().Msgf("wait for confirmation..")
-	bind.WaitMined(ctx, client, tx)
+	ctx2, cancel2 := utils.DefaultTimeoutContext()
+	defer cancel2()
 
-	logger.Info().Msgf("query receipt for tx: %v", tx.Hash())
-	receipt, err := client.TransactionReceipt(ctx, tx.Hash())
+	logger.Info().Msgf("waiting for confirmation..")
+	receipt, err := bind.WaitMined(ctx2, client, tx)
 	if err != nil {
 		return fmt.Errorf("get receipt for tx: %v error: %w", tx.Hash(), err)
 	}
+
 	utils.ShowReceipt(logger, receipt)
 
 	logger.Info().Msgf("tx hash: %v", tx.Hash())

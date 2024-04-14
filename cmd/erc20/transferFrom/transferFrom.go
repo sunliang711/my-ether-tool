@@ -1,12 +1,9 @@
 package transferFrom
 
 import (
-	"context"
 	"fmt"
 	"met/cmd/erc20"
-	"met/consts"
 	utils "met/utils"
-	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -55,7 +52,7 @@ func transferToken(cmd *cobra.Command, args []string) {
 	utils.ExitWhen(logger, *to == "", "need to address")
 	utils.ExitWhen(logger, *amount == "", "need token amount")
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*consts.DefaultTimeout)
+	ctx, cancel := utils.DefaultTimeoutContext()
 	defer cancel()
 
 	// tokenName, err := erc20.ReadErc20(ctx, *contract, *network, erc20.Erc20Name, "", "")

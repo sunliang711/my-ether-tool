@@ -79,7 +79,7 @@ func BuildTransaction(ctx context.Context, rpc string, from string, to string, v
 		}
 	}
 
-	client, err := ethclient.Dial(rpc)
+	client, err := ethclient.DialContext(ctx, rpc)
 	if err != nil {
 		return
 	}

@@ -5,16 +5,13 @@ package tx
 
 import (
 	"bufio"
-	"context"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	"met/cmd/tx"
-	"met/consts"
 	database "met/database"
 	transaction "met/transaction"
 	ttypes "met/types"
@@ -106,7 +103,7 @@ func offsign(cmd *cobra.Command, args []string) {
 	fmt.Printf("%-20s:%s\n", "network name", net.Name)
 	fmt.Printf("%-20s:%s\n", "network rpc", net.Rpc)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*consts.DefaultTimeout)
+	ctx, cancel := utils.DefaultTimeoutContext()
 	defer cancel()
 
 	tx, err := transaction.BuildTransaction(ctx, rpc, *from, *to, value, *data, *abi, *abiArgs, *gasLimit, *nonce, *chainID, "", *gasPrice, *tipCap, *feeCap, *eip1559, false)

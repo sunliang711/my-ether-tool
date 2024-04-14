@@ -1,11 +1,8 @@
 package allowance
 
 import (
-	"context"
 	"met/cmd/erc20"
-	"met/consts"
 	utils "met/utils"
-	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -42,7 +39,7 @@ func getAllowance(cmd *cobra.Command, args []string) {
 	utils.ExitWhen(logger, *owner == "", "missing owner address")
 	utils.ExitWhen(logger, *spender == "", "missing spender address")
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*consts.DefaultTimeout)
+	ctx, cancel := utils.DefaultTimeoutContext()
 	defer cancel()
 
 	data, err := erc20.ReadErc20(ctx, *contract, *network, erc20.Erc20Allowance, *owner, *spender)

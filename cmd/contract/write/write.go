@@ -4,11 +4,9 @@ Copyright © 2023 NAME HERE <EMAIL ADDRESS>
 package write
 
 import (
-	"context"
 	"met/cmd/contract"
 	"met/consts"
 	utils "met/utils"
-	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -82,7 +80,7 @@ func writeContract(cmd *cobra.Command, args []string) {
 	utils.ExitWhen(logger, contractAddress == "", "missing contract")
 	utils.ExitWhen(logger, abi == "", "missing abi")
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*consts.DefaultTimeout)
+	ctx, cancel := utils.DefaultTimeoutContext()
 	defer cancel()
 
 	abiJson := abi

@@ -1,12 +1,9 @@
 package approve
 
 import (
-	"context"
 	"fmt"
 	"met/cmd/erc20"
-	"met/consts"
 	utils "met/utils"
-	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -52,7 +49,7 @@ func approveToken(cmd *cobra.Command, args []string) {
 	utils.ExitWhen(logger, *spender == "", "need token spender")
 	utils.ExitWhen(logger, *amount == "", "need token amount")
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*consts.DefaultTimeout)
+	ctx, cancel := utils.DefaultTimeoutContext()
 	defer cancel()
 
 	decimalsStr := fmt.Sprintf("%v", *decimals)
