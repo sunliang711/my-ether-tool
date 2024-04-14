@@ -14,6 +14,7 @@ func IsValidAddress(address string) bool {
 }
 
 func ShowReceipt(logger zerolog.Logger, receipt *types.Receipt) {
+	logger.Info().Msgf("[Receipt] Tx Hash: %v", receipt.TxHash)
 	logger.Info().Msgf("[Receipt] Block Number: %v", receipt.BlockNumber)
 	logger.Info().Msgf("[Receipt] Block Hash: %v", receipt.BlockHash)
 	logger.Info().Msgf("[Receipt] Contract Address: %v", receipt.ContractAddress)

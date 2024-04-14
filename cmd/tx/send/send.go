@@ -161,7 +161,6 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	logger.Info().Msgf("send tx")
 	err = client.SendTransaction(ctx, tx)
 	if err != nil {
 		logger.Fatal().Msgf("send transaction error: %v", err)

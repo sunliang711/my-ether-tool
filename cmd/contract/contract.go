@@ -233,7 +233,7 @@ func WriteContract(ctx context.Context, networkName, contract, abiJson, methodNa
 
 	logger.Info().Msgf("network: %v", net.Name)
 	logger.Info().Msgf("dial rpc: %v", net.Rpc)
-	client, err := ethclient.DialContext(ctx,net.Rpc)
+	client, err := ethclient.DialContext(ctx, net.Rpc)
 	if err != nil {
 		return fmt.Errorf("dial rpc error: %w", err)
 	}
@@ -298,17 +298,19 @@ func WriteContract(ctx context.Context, networkName, contract, abiJson, methodNa
 	transactor.GasTipCap = txParams.GasTipCap
 	transactor.Value = txParams.Value
 
+	logger.Info().Msgf("From: %v", accountDetails.Address)
+	logger.Info().Msgf("To: %v (contract)", contract)
+	logger.Info().Msgf("Value: %v", value)
 	logger.Info().Msgf("Nonce: %v", transactor.Nonce)
 	logger.Info().Msgf("GasLimit: %v", transactor.GasLimit)
 	logger.Info().Msgf("GasPrice: %v", transactor.GasPrice.String())
 	logger.Info().Msgf("GasFeeCap: %v", transactor.GasFeeCap.String())
 	logger.Info().Msgf("GasTipCap: %v", transactor.GasTipCap.String())
-	logger.Info().Msgf("Value: %v", value)
 	logger.Info().Msgf("Method: %v", methodName)
+	logger.Info().Msgf("Data: %v", hex.EncodeToString(input))
 	for i, param := range paramNames {
 		logger.Info().Msgf("Arg%d: %v (%v)", i, realArgs[i], param)
 	}
-	logger.Info().Msgf("Data: %v", hex.EncodeToString(input))
 
 	if !noconfirm {
 		input, err := utils.ReadChar("Send ? [y/N] ")
