@@ -19,9 +19,7 @@ var decimals = &cobra.Command{
 }
 
 var (
-	account      *string
-	accountIndex *uint
-	network      *string
+	network *string
 
 	contract *string
 )
@@ -29,8 +27,6 @@ var (
 func init() {
 	erc20.Erc20Cmd.AddCommand(decimals)
 
-	account = decimals.Flags().String("account", "", "account to be used to send tx,use current if empty")
-	accountIndex = decimals.Flags().Uint("account-index", 0, "account index to be used to send tx")
 	network = decimals.Flags().String("network", "", "used network, use current if empty")
 
 	contract = decimals.Flags().String("contract", "", "contract address")

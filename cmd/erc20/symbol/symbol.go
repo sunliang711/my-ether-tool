@@ -19,8 +19,6 @@ var symbolCmd = &cobra.Command{
 }
 
 var (
-	account      *string
-	accountIndex *uint
 	network      *string
 
 	contract *string
@@ -29,8 +27,6 @@ var (
 func init() {
 	erc20.Erc20Cmd.AddCommand(symbolCmd)
 
-	account = symbolCmd.Flags().String("account", "", "account to be used to send tx,use current if empty")
-	accountIndex = symbolCmd.Flags().Uint("account-index", 0, "account index to be used to send tx")
 	network = symbolCmd.Flags().String("network", "", "used network, use current if empty")
 
 	contract = symbolCmd.Flags().String("contract", "", "contract address")
