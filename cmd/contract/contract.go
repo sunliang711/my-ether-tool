@@ -312,9 +312,10 @@ func WriteContract(ctx context.Context, networkName, contract, abiJson, methodNa
 	logger.Info().Msgf("wait for confirmation..")
 	bind.WaitMined(ctx, client, tx)
 
+	logger.Info().Msgf("query receipt for tx: %v", tx.Hash())
 	receipt, err := client.TransactionReceipt(ctx, tx.Hash())
 	if err != nil {
-		return fmt.Errorf("get receipt error: %w", err)
+		return fmt.Errorf("get receipt for tx: %v error: %w", tx.Hash(), err)
 	}
 	utils.ShowReceipt(logger, receipt)
 
