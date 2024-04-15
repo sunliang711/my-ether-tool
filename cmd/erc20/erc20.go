@@ -183,9 +183,18 @@ func WriteErc20(ctx context.Context, contract string, networkName string, accoun
 	if err != nil {
 		return "", fmt.Errorf("get account details error: %w", err)
 	}
-	log.Info().Msgf("account info: name: %v address: %v", accountDetails.Name, accountDetails.Address)
+	addressStr, err := accountDetails.Address()
+	if err != nil {
+		return "", fmt.Errorf("get account address error: %w", err)
+	}
+	log.Info().Msgf("account info: name: %v address: %v", accountDetails.Name, addressStr)
 
-	pk := strings.TrimPrefix(accountDetails.PrivateKey, "0x")
+	privateKeyStr, err := accountDetails.PrivateKey()
+	if err != nil {
+		return "", fmt.Errorf("get account private key error: %w", err)
+	}
+
+	pk := strings.TrimPrefix(privateKeyStr, "0x")
 	privateKey, err := crypto.HexToECDSA(pk)
 	if err != nil {
 		return "", fmt.Errorf("create private key error: %w", err)

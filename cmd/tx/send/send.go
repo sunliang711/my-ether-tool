@@ -89,10 +89,14 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 	details, err := ttypes.AccountToDetails(account)
 	utils.ExitWhenErr(logger, err, "calculate address error: %s", err)
 
-	privateKey, err := crypto.HexToECDSA(strings.TrimPrefix(details.PrivateKey, "0x"))
+	privateKeyStr, err := details.PrivateKey()
+	utils.ExitWhenErr(logger, err, "get account private key error: %s", err)
+
+	privateKey, err := crypto.HexToECDSA(strings.TrimPrefix(privateKeyStr, "0x"))
 	utils.ExitWhenErr(logger, err, "parse privateKey error: %s", err)
 
-	from := details.Address
+	from, err := details.Address()
+	utils.ExitWhenErr(logger, err, "get account address error: %s", err)
 
 	net, err := database.QueryNetworkOrCurrent(*network)
 	utils.ExitWhenErr(logger, err, "load network error: %s", err)
@@ -101,7 +105,7 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 	logger.Info().Msgf("network name: %s", net.Name)
 	logger.Info().Msgf("network rpc: %s", net.Rpc)
 	logger.Info().Msgf("account name: %s", details.Name)
-	logger.Info().Msgf("address: %s", details.Address)
+	logger.Info().Msgf("address: %s", from)
 
 	ctx, cancel := utils.DefaultTimeoutContext()
 	defer cancel()

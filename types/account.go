@@ -18,41 +18,83 @@ const (
 type AccountDetails struct {
 	database.Account
 
-	PrivateKey string
-	Address    string
+	privateKey string
+	address    string
 	Path       string
 }
 
+func (f *AccountDetails) Address() (string, error) {
+	if f.Encrypted {
+		return "", fmt.Errorf("account: %v locked", f.Name)
+	}
+	return f.address, nil
+}
+
+func (f *AccountDetails) PrivateKey() (string, error) {
+	if f.Encrypted {
+		return "", fmt.Errorf("account: %v locked", f.Name)
+	}
+	return f.privateKey, nil
+
+}
+
 func (f AccountDetails) AsString(insecure bool) string {
-	msg := fmt.Sprintf("Account Name: %s\n", f.Name)
-	msg += fmt.Sprintf("Account Type: %s\n", f.Type)
+	var msgArray []string
+	msgArray = append(msgArray, fmt.Sprintf("Account Name: %s\n", f.Name))
+	msgArray = append(msgArray, fmt.Sprintf("Account Type: %s\n", f.Type))
 	switch f.Type {
 	case MnemonicType:
 		if insecure {
-			msg += fmt.Sprintf("Mnemonic: %s\n", f.Value)
-			msg += fmt.Sprintf("Passphrase: %s\n", f.Passphrase)
-			msg += fmt.Sprintf("Private key: %s\n", f.PrivateKey)
+			if f.Encrypted {
+				msgArray = append(msgArray, fmt.Sprintf("Mnemonic: locked\n"))
+				msgArray = append(msgArray, fmt.Sprintf("Passphrase: %s\n", f.Passphrase))
+				msgArray = append(msgArray, fmt.Sprintf("Private key: locked\n"))
+			} else {
+				msgArray = append(msgArray, fmt.Sprintf("Mnemonic: %s\n", f.Value))
+				msgArray = append(msgArray, fmt.Sprintf("Passphrase: %s\n", f.Passphrase))
+				msgArray = append(msgArray, fmt.Sprintf("Private key: %s\n", f.privateKey))
+			}
+
 		}
-		msg += fmt.Sprintf("Path Format: %s\n", f.PathFormat)
-		msg += fmt.Sprintf("Path: %s\n", f.Path)
+		msgArray = append(msgArray, fmt.Sprintf("Path Format: %s\n", f.PathFormat))
+		msgArray = append(msgArray, fmt.Sprintf("Path: %s\n", f.Path))
+
 	case PrivateKeyType:
 		if insecure {
-			msg += fmt.Sprintf("Private Key: %s\n", f.Value)
+			if f.Encrypted {
+				msgArray = append(msgArray, fmt.Sprintf("Private Key: locked\n"))
+			} else {
+				msgArray = append(msgArray, fmt.Sprintf("Private Key: %s\n", f.Value))
+
+			}
 		}
 	default:
 		return "invalid account type"
 	}
-	msg += fmt.Sprintf("Address: %s\n", f.Address)
-	msg += fmt.Sprintf("Is Current: %v\n", f.Current)
-	msg += fmt.Sprintf("Current Index: %d\n", f.CurrentIndex)
 
-	return msg
+	if f.Encrypted {
+		msgArray = append(msgArray, fmt.Sprintf("Address: locked\n"))
+		msgArray = append(msgArray, fmt.Sprintf("Is Current: %v\n", f.Current))
+		msgArray = append(msgArray, fmt.Sprintf("Current Index: %d\n", f.CurrentIndex))
+	} else {
+		address, _ := f.Address()
+		msgArray = append(msgArray, fmt.Sprintf("Address: %s\n", address))
+		msgArray = append(msgArray, fmt.Sprintf("Is Current: %v\n", f.Current))
+		msgArray = append(msgArray, fmt.Sprintf("Current Index: %d\n", f.CurrentIndex))
+
+	}
+
+	return strings.Join(msgArray, "")
 }
 
 func AccountToDetails(account *database.Account) (*AccountDetails, error) {
 	var privateKey string
 	var address string
 	var path string
+
+	if account.Encrypted {
+		return &AccountDetails{Account: *account}, nil
+	}
 
 	switch account.Type {
 	case MnemonicType:
@@ -74,14 +116,17 @@ func AccountToDetails(account *database.Account) (*AccountDetails, error) {
 			return nil, err
 		}
 		address, err = hd.PubkeyToAddress(pubkey)
+		if err != nil {
+			return nil, fmt.Errorf("pubkeyToAddress error: %v", err)
+		}
 	default:
 		return nil, errors.New("invalid account type")
 	}
 
 	fullAccount := AccountDetails{
 		Account:    *account,
-		PrivateKey: privateKey,
-		Address:    address,
+		privateKey: privateKey,
+		address:    address,
 		Path:       path,
 	}
 

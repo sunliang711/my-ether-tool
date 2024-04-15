@@ -52,6 +52,7 @@ func createWallet(cmd *cobra.Command, args []string) {
 			Name:       *name,
 			Type:       *accountType,
 			Value:      mnemonic,
+			Encrypted:  false,
 			PathFormat: types.DefaultHDPath,
 			Passphrase: *passphrase,
 		}
@@ -62,9 +63,10 @@ func createWallet(cmd *cobra.Command, args []string) {
 		privateKeyBytes := crypto.FromECDSA(privateKey)
 
 		newAccount = &database.Account{
-			Name:  *name,
-			Type:  *accountType,
-			Value: hexutil.Encode(privateKeyBytes),
+			Name:      *name,
+			Type:      *accountType,
+			Value:     hexutil.Encode(privateKeyBytes),
+			Encrypted: false,
 		}
 	default:
 		utils.ExitWhen(logger, true, "invalid account type, use 'mnemonic' or 'private key'\n")

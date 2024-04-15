@@ -249,9 +249,19 @@ func WriteContract(ctx context.Context, networkName, contract, abiJson, methodNa
 	if err != nil {
 		return fmt.Errorf("get account details error: %w", err)
 	}
-	logger.Info().Msgf("account info: name: %v address: %v account index: %v", accountDetails.Name, accountDetails.Address, accountDetails.CurrentIndex)
+	addressStr, err := accountDetails.Address()
+	if err != nil {
+		return fmt.Errorf("get account address error: %w", err)
+	}
 
-	pk := strings.TrimPrefix(accountDetails.PrivateKey, "0x")
+	logger.Info().Msgf("account info: name: %v address: %v account index: %v", accountDetails.Name, addressStr, accountDetails.CurrentIndex)
+
+	privateKeyStr, err := accountDetails.PrivateKey()
+	if err != nil {
+		return fmt.Errorf("get account private key error: %w", err)
+	}
+
+	pk := strings.TrimPrefix(privateKeyStr, "0x")
 	privateKey, err := crypto.HexToECDSA(pk)
 	if err != nil {
 		return fmt.Errorf("create private key error: %w", err)
@@ -286,7 +296,8 @@ func WriteContract(ctx context.Context, networkName, contract, abiJson, methodNa
 	if err != nil {
 		return fmt.Errorf("abi pack error: %v", err)
 	}
-	txParams, err := transaction.GetTxParams(ctx, client, accountDetails.Address, contract, chainId.String(), nonce, value, gasLimitRatio, gasLimit, gasRatio, gasPrice, gasFeeCap, gasTipCap, eip1559, input)
+
+	txParams, err := transaction.GetTxParams(ctx, client, addressStr, contract, chainId.String(), nonce, value, gasLimitRatio, gasLimit, gasRatio, gasPrice, gasFeeCap, gasTipCap, eip1559, input)
 	if err != nil {
 		return fmt.Errorf("GetTxParams error: %w", err)
 	}

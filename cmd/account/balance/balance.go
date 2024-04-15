@@ -58,9 +58,11 @@ func getBalance(cmd *cobra.Command, args []string) {
 	accountDetails, err := types.AccountToDetails(account)
 	utils.ExitWhenErr(logger, err, "get account details error: %v", err)
 
-	address := common.HexToAddress(accountDetails.Address)
+	addressStr, err := accountDetails.Address()
+	utils.ExitWhenErr(logger, err, "get account address error: %v", err)
+	address := common.HexToAddress(addressStr)
 
-	logger.Info().Msgf("query balance for address: %v", accountDetails.Address)
+	logger.Info().Msgf("query balance for address: %v", addressStr)
 	balance, err := client.BalanceAt(ctx, address, nil)
 	utils.ExitWhenErr(logger, err, "query account balance error: %v", err)
 

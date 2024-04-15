@@ -13,6 +13,9 @@ type Account struct {
 
 	Value string
 
+	// Value 字段是否已经加密
+	Encrypted bool
+
 	PathFormat string
 	Passphrase string
 
@@ -130,4 +133,22 @@ func QueryAccountOrCurrent(name string, index uint) (*Account, error) {
 	acc, err = CurrentAccount()
 
 	return &acc, err
+}
+
+func LockAccount(name string) error {
+	err := Conn.Model(&Account{}).Where(&Account{Name: name}).Update("encrypted", true).Error
+	if err != nil {
+		return fmt.Errorf("lock account: %v error: %w", name, err)
+	}
+
+	return nil
+}
+
+func UnlockAccount(name string) error {
+	err := Conn.Model(&Account{}).Where(&Account{Name: name}).Update("encrypted", false).Error
+	if err != nil {
+		return fmt.Errorf("unlock account: %v error: %w", name, err)
+	}
+
+	return nil
 }

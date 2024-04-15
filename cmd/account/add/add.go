@@ -71,6 +71,7 @@ func importAccount(cmd *cobra.Command, args []string) {
 		Name:         *name,
 		Type:         *accountType,
 		Value:        *value,
+		Encrypted:    false,
 		PathFormat:   *pathFormat,
 		Passphrase:   *passphrase,
 		Current:      false,
