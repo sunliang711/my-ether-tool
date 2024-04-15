@@ -40,20 +40,19 @@ func (f *AccountDetails) PrivateKey() (string, error) {
 
 func (f AccountDetails) AsString(insecure bool) string {
 	var msgArray []string
-	msgArray = append(msgArray, fmt.Sprintf("Account Name: %s\n", f.Name))
+	msgArray = append(msgArray, fmt.Sprintf("\nAccount Name: %s\n", f.Name))
 	msgArray = append(msgArray, fmt.Sprintf("Account Type: %s\n", f.Type))
+
+	if f.Encrypted {
+		msgArray = append(msgArray, "Account Status: locked\n")
+		return strings.Join(msgArray, "")
+	}
 	switch f.Type {
 	case MnemonicType:
 		if insecure {
-			if f.Encrypted {
-				msgArray = append(msgArray, fmt.Sprintf("Mnemonic: locked\n"))
-				msgArray = append(msgArray, fmt.Sprintf("Passphrase: %s\n", f.Passphrase))
-				msgArray = append(msgArray, fmt.Sprintf("Private key: locked\n"))
-			} else {
-				msgArray = append(msgArray, fmt.Sprintf("Mnemonic: %s\n", f.Value))
-				msgArray = append(msgArray, fmt.Sprintf("Passphrase: %s\n", f.Passphrase))
-				msgArray = append(msgArray, fmt.Sprintf("Private key: %s\n", f.privateKey))
-			}
+			msgArray = append(msgArray, fmt.Sprintf("Mnemonic: %s\n", f.Value))
+			msgArray = append(msgArray, fmt.Sprintf("Passphrase: %s\n", f.Passphrase))
+			msgArray = append(msgArray, fmt.Sprintf("Private key: %s\n", f.privateKey))
 
 		}
 		msgArray = append(msgArray, fmt.Sprintf("Path Format: %s\n", f.PathFormat))
@@ -61,28 +60,16 @@ func (f AccountDetails) AsString(insecure bool) string {
 
 	case PrivateKeyType:
 		if insecure {
-			if f.Encrypted {
-				msgArray = append(msgArray, fmt.Sprintf("Private Key: locked\n"))
-			} else {
-				msgArray = append(msgArray, fmt.Sprintf("Private Key: %s\n", f.Value))
+			msgArray = append(msgArray, fmt.Sprintf("Private Key: %s\n", f.Value))
 
-			}
 		}
 	default:
 		return "invalid account type"
 	}
 
-	if f.Encrypted {
-		msgArray = append(msgArray, fmt.Sprintf("Address: locked\n"))
-		msgArray = append(msgArray, fmt.Sprintf("Is Current: %v\n", f.Current))
-		msgArray = append(msgArray, fmt.Sprintf("Current Index: %d\n", f.CurrentIndex))
-	} else {
-		address, _ := f.Address()
-		msgArray = append(msgArray, fmt.Sprintf("Address: %s\n", address))
-		msgArray = append(msgArray, fmt.Sprintf("Is Current: %v\n", f.Current))
-		msgArray = append(msgArray, fmt.Sprintf("Current Index: %d\n", f.CurrentIndex))
-
-	}
+	msgArray = append(msgArray, fmt.Sprintf("Address: %s\n", f.address))
+	msgArray = append(msgArray, fmt.Sprintf("Is Current: %v\n", f.Current))
+	msgArray = append(msgArray, fmt.Sprintf("Current Index: %d\n", f.CurrentIndex))
 
 	return strings.Join(msgArray, "")
 }
