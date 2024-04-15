@@ -138,14 +138,22 @@ func QueryAccountOrCurrent(name string, index uint) (*Account, error) {
 
 // 那么为空时表示所有
 func LockAccount(name string, password string) error {
-	var accountList []Account
+	var (
+		accountList []Account
+		logger      = utils.GetLogger("LockAccount")
+	)
 	err := Conn.Model(&Account{}).Where(&Account{Name: name}).Find(&accountList).Error
 	if err != nil {
 		return fmt.Errorf("query account by name: %s error: %w", name, err)
 	}
 
 	for _, acc := range accountList {
+		if acc.Encrypted {
+			logger.Info().Msgf("account: %v already locked,skip", acc.Name)
+			continue
+		}
 		// encrypt
+		logger.Info().Msgf("lock account: %v", acc.Name)
 		encrypted := utils.Encrypt(password, acc.Value)
 		err = Conn.Model(&Account{}).Where(&Account{Name: acc.Name}).Updates(map[string]any{"encrypted": true, "value": encrypted}).Error
 		if err != nil {
@@ -169,8 +177,12 @@ func UnlockAccount(name string, password string) error {
 	}
 
 	for _, acc := range accountList {
+		if !acc.Encrypted {
+			logger.Info().Msgf("account: %v already unlocked,skip", acc.Name)
+			continue
+		}
 		// encrypt
-		logger.Info().Msgf("lock account: %v", acc.Name)
+		logger.Info().Msgf("unlock account: %v", acc.Name)
 		decrypted := utils.Decrypt(password, acc.Value)
 		if decrypted == "" {
 			return fmt.Errorf("wrong password")
