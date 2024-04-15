@@ -6,6 +6,7 @@ import (
 	"met/database"
 	"met/types"
 	utils "met/utils"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -69,12 +70,16 @@ func getBalance(cmd *cobra.Command, args []string) {
 	humanBalance, err := utils.FormatUnits(balance.String(), utils.UnitEth)
 	utils.ExitWhenErr(logger, err, "format balance: %v error: %v", balance.String(), err)
 
-	logger.Info().Msgf("query nonce for address: %v", accountDetails.Address)
+	logger.Info().Msgf("query nonce for address: %v", addressStr)
 	nonce, err := client.PendingNonceAt(ctx, address)
 	utils.ExitWhenErr(logger, err, "query nonce error: %v", err)
 
-	logger.Info().Msgf("account: %v account index: %v", accountDetails.Name, accountDetails.CurrentIndex)
-	logger.Info().Msgf("address: %v balance: %v %v", accountDetails.Address, humanBalance, network.Symbol)
-	logger.Info().Msgf("nonce: %v", nonce)
-	logger.Info().Msgf("address link: %v", fmt.Sprintf("%v/address/%v", network.Explorer, accountDetails.Address))
+	var balanceInfo []string
+	balanceInfo = append(balanceInfo, fmt.Sprintf("\nAccount: %v Account Index: %v\n", accountDetails.Name, accountDetails.CurrentIndex))
+	balanceInfo = append(balanceInfo, fmt.Sprintf("Address: %v Balance: %v %v\n", addressStr, humanBalance, network.Symbol))
+	balanceInfo = append(balanceInfo, fmt.Sprintf("Nonce: %v\n", nonce))
+	balanceInfo = append(balanceInfo, fmt.Sprintf("Address Link: %v\n", fmt.Sprintf("%v/address/%v", network.Explorer, addressStr)))
+	info := strings.Join(balanceInfo, "")
+	logger.Info().Msg(info)
+
 }
