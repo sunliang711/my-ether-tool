@@ -2,6 +2,7 @@ package database
 
 import (
 	"fmt"
+	"met/utils"
 
 	"gorm.io/gorm"
 )
@@ -135,19 +136,49 @@ func QueryAccountOrCurrent(name string, index uint) (*Account, error) {
 	return &acc, err
 }
 
-func LockAccount(name string) error {
-	err := Conn.Model(&Account{}).Where(&Account{Name: name}).Update("encrypted", true).Error
+// 那么为空时表示所有
+func LockAccount(name string, password string) error {
+	var accountList []Account
+	err := Conn.Model(&Account{}).Where(&Account{Name: name}).Find(&accountList).Error
 	if err != nil {
-		return fmt.Errorf("lock account: %v error: %w", name, err)
+		return fmt.Errorf("query account by name: %s error: %w", name, err)
+	}
+
+	for _, acc := range accountList {
+		// encrypt
+		encrypted := utils.Encrypt(password, acc.Value)
+		err = Conn.Model(&Account{}).Where(&Account{Name: acc.Name}).Updates(map[string]any{"encrypted": true, "value": encrypted}).Error
+		if err != nil {
+			return fmt.Errorf("lock account: %v error: %w", acc.Name, err)
+		}
 	}
 
 	return nil
 }
 
-func UnlockAccount(name string) error {
-	err := Conn.Model(&Account{}).Where(&Account{Name: name}).Update("encrypted", false).Error
+func UnlockAccount(name string, password string) error {
+
+	var (
+		accountList []Account
+		logger      = utils.GetLogger("UnlockAccount")
+	)
+
+	err := Conn.Model(&Account{}).Where(&Account{Name: name}).Find(&accountList).Error
 	if err != nil {
-		return fmt.Errorf("unlock account: %v error: %w", name, err)
+		return fmt.Errorf("query account by name: %s error: %w", name, err)
+	}
+
+	for _, acc := range accountList {
+		// encrypt
+		logger.Info().Msgf("lock account: %v", acc.Name)
+		decrypted := utils.Decrypt(password, acc.Value)
+		if decrypted == "" {
+			return fmt.Errorf("wrong password")
+		}
+		err = Conn.Model(&Account{}).Where(&Account{Name: acc.Name}).Updates(map[string]any{"encrypted": false, "value": decrypted}).Error
+		if err != nil {
+			return fmt.Errorf("lock account: %v error: %w", acc.Name, err)
+		}
 	}
 
 	return nil

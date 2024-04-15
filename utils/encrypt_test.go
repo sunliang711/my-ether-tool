@@ -11,6 +11,6 @@ func TestEncrypt(t *testing.T) {
 	encrypted := Encrypt(passphrase, mnemonic)
 	t.Logf("encrypted: '%v'", encrypted)
 
-	decrypted := Decrypt(passphrase, encrypted)
+	decrypted := Decrypt(passphrase+"cc", encrypted)
 	t.Logf("decrypted: '%v'", decrypted)
 }

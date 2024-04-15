@@ -17,8 +17,9 @@ var lockCmd = &cobra.Command{
 }
 
 var (
-	name   *string
-	unlock *bool
+	name     *string
+	unlock   *bool
+	password *string
 )
 
 func init() {
@@ -28,6 +29,7 @@ func init() {
 	name = lockCmd.Flags().String("name", "", "lock specify account instead of all accounts")
 
 	unlock = lockCmd.Flags().BoolP("unlock", "u", false, "unlock account")
+	password = lockCmd.Flags().String("password", "", "password")
 }
 
 func lockAccount(cmd *cobra.Command, args []string) {
@@ -36,10 +38,16 @@ func lockAccount(cmd *cobra.Command, args []string) {
 		err    error
 	)
 
+	if *password == "" {
+		// read from stdin
+		*password, err = utils.ReadSecret("Enter password:")
+		utils.ExitWhenErr(logger, err, "read password error: %s", err)
+	}
+
 	if *unlock {
-		err = database.UnlockAccount(*name)
+		err = database.UnlockAccount(*name, *password)
 	} else {
-		err = database.LockAccount(*name)
+		err = database.LockAccount(*name, *password)
 	}
 	utils.ExitWhenErr(logger, err, "(un)lock account error: %s", err)
 
