@@ -6,6 +6,8 @@ package write
 import (
 	"met/cmd/contract"
 	"met/consts"
+	"met/database"
+	"met/types"
 	utils "met/utils"
 
 	"github.com/spf13/cobra"
@@ -99,6 +101,19 @@ func writeContract(cmd *cobra.Command, args []string) {
 		logger.Debug().Msgf("use custom abi")
 	}
 
-	err = contract.WriteContract(ctx, network, contractAddress, abiJson, method, *account, *nonce, *value, *gasLimitRatio, *gasLimit, *gasRatio, *gasPrice, *gasFeeCap, *gasTipCap, *accountIndex, *eip1559, *noconfirm, abiArgs...)
+	net, err := database.QueryNetworkOrCurrent(network)
+	utils.ExitWhenErr(logger, err, "query network error: %v", err)
+
+	client, err := utils.DialRpc(ctx, net.Rpc)
+	utils.ExitWhenErr(logger, err, "dial rpc error: %v", err)
+	defer client.Close()
+
+	acc, err := database.QueryAccountOrCurrent(*account, *accountIndex)
+	utils.ExitWhenErr(logger, err, "query account error: %v", err)
+
+	accountDetails, err := types.AccountToDetails(acc)
+	utils.ExitWhenErr(logger, err, "get account details error: %v", err)
+
+	err = contract.WriteContract(ctx, client, net, accountDetails, contractAddress, abiJson, method, *account, *nonce, *value, *gasLimitRatio, *gasLimit, *gasRatio, *gasPrice, *gasFeeCap, *gasTipCap, *accountIndex, *eip1559, *noconfirm, abiArgs...)
 	utils.ExitWhenErr(logger, err, "write contract error: %v", err)
 }

@@ -6,6 +6,7 @@ package read
 import (
 	"met/cmd/contract"
 	"met/consts"
+	"met/database"
 	utils "met/utils"
 
 	"github.com/spf13/cobra"
@@ -83,7 +84,14 @@ func readContract(cmd *cobra.Command, args []string) {
 		logger.Debug().Msgf("use custom abi")
 	}
 
-	outputs, err := contract.ReadContract(ctx, network, contractAddress, abiJson, method, abiArgs...)
+	net, err := database.QueryNetworkOrCurrent(network)
+	utils.ExitWhenErr(logger, err, "query network error: %v", err)
+
+	client, err := utils.DialRpc(ctx, net.Rpc)
+	utils.ExitWhenErr(logger, err, "dial rpc error: %v", err)
+	defer client.Close()
+
+	outputs, err := contract.ReadContract(ctx, client, net, contractAddress, abiJson, method, abiArgs...)
 	utils.ExitWhenErr(logger, err, "read contract error: %v", err)
 
 	for _, output := range outputs {

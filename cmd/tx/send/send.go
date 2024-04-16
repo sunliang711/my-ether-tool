@@ -14,7 +14,6 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/spf13/cobra"
 )
 
@@ -100,25 +99,22 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 
 	net, err := database.QueryNetworkOrCurrent(*network)
 	utils.ExitWhenErr(logger, err, "load network error: %s", err)
-	rpc := net.Rpc
+
+	ctx, cancel := utils.DefaultTimeoutContext()
+	defer cancel()
+
+	client, err := utils.DialRpc(ctx, net.Rpc)
+	utils.ExitWhenErr(logger, err, "dial rpc error: %v", err)
+	defer client.Close()
 
 	logger.Info().Msgf("network name: %s", net.Name)
 	logger.Info().Msgf("network rpc: %s", net.Rpc)
 	logger.Info().Msgf("account name: %s", details.Name)
 	logger.Info().Msgf("address: %s", from)
 
-	ctx, cancel := utils.DefaultTimeoutContext()
-	defer cancel()
-
 	// build tx
-	tx, err := transaction.BuildTransaction(ctx, rpc, from, *to, value, *data, *abi, *abiArgs, *gasLimit, *nonce, *chainID, *gasRatio, *gasPrice, *tipCap, *feeCap, *eip1559, *all)
+	tx, err := transaction.BuildTransaction(ctx, client, from, *to, value, *data, *abi, *abiArgs, *gasLimit, *nonce, *chainID, *gasRatio, *gasPrice, *tipCap, *feeCap, *eip1559, *all)
 	utils.ExitWhenErr(logger, err, "build tx error: %s", err)
-
-	client, err := ethclient.DialContext(ctx, rpc)
-	if err != nil {
-		return
-	}
-	defer client.Close()
 
 	signer := types.LatestSignerForChainID(tx.ChainId())
 	txHash := signer.Hash(tx)

@@ -106,7 +106,11 @@ func offsign(cmd *cobra.Command, args []string) {
 	ctx, cancel := utils.DefaultTimeoutContext()
 	defer cancel()
 
-	tx, err := transaction.BuildTransaction(ctx, rpc, *from, *to, value, *data, *abi, *abiArgs, *gasLimit, *nonce, *chainID, "", *gasPrice, *tipCap, *feeCap, *eip1559, false)
+	client, err := utils.DialRpc(ctx, net.Rpc)
+	utils.ExitWhenErr(logger, err, "dial rpc error: %v", err)
+	defer client.Close()
+
+	tx, err := transaction.BuildTransaction(ctx, client, *from, *to, value, *data, *abi, *abiArgs, *gasLimit, *nonce, *chainID, "", *gasPrice, *tipCap, *feeCap, *eip1559, false)
 	utils.ExitWhenErr(logger, err, "build transaction error: %s", err)
 
 	signer := types.NewCancunSigner(tx.ChainId())

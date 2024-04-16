@@ -33,7 +33,7 @@ import (
 // @param eip1559:
 // eip1559为true时，当gasTipCap 和 gasFeeCap都不为空时使用它们，否则从rpc获取这两个值
 // eip1559为false时，当gasPrice不为空时使用gasPrice，否则从rpc获取
-func BuildTransaction(ctx context.Context, rpc string, from string, to string, value *string, data string, abi string, args []string, gasLimit uint64, nonce string, chainID int, gasRatio, gasPrice string, gasTipCap string, gasFeeCap string, eip1559 bool, sendAll bool) (tx *types.Transaction /*newValue *big.Int,*/, err error) {
+func BuildTransaction(ctx context.Context, client *ethclient.Client, from string, to string, value *string, data string, abi string, args []string, gasLimit uint64, nonce string, chainID int, gasRatio, gasPrice string, gasTipCap string, gasFeeCap string, eip1559 bool, sendAll bool) (tx *types.Transaction /*newValue *big.Int,*/, err error) {
 	// check params
 	var (
 		nonce0   uint64
@@ -78,12 +78,6 @@ func BuildTransaction(ctx context.Context, rpc string, from string, to string, v
 			return
 		}
 	}
-
-	client, err := ethclient.DialContext(ctx, rpc)
-	if err != nil {
-		return
-	}
-	defer client.Close()
 
 	// if nonce == ""; get by rpc
 	if nonce == "" {

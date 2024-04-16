@@ -10,7 +10,7 @@ import (
 	cmd "met/cmd"
 	database "met/database"
 	transaction "met/transaction"
-	types "met/types"
+	"met/types"
 	utils "met/utils"
 	"os"
 	"strings"
@@ -168,7 +168,7 @@ func parseOutput(abiObj *abi.ABI, methodName string, results []any) ([]NameValue
 	return nameValues, nil
 }
 
-func ReadContract(ctx context.Context, networkName, contract, abiJson, methodName string, args ...string) ([]NameValue, error) {
+func ReadContract(ctx context.Context, client *ethclient.Client, net *database.Network, contract, abiJson, methodName string, args ...string) ([]NameValue, error) {
 	logger := utils.GetLogger("ReadContract")
 	logger.Debug().Msgf("abi: %v", abiJson)
 
@@ -181,20 +181,10 @@ func ReadContract(ctx context.Context, networkName, contract, abiJson, methodNam
 	contractAddress := common.HexToAddress(contract)
 	logger.Info().Msgf("contract address: %v", contractAddress)
 
-	logger.Info().Msgf("query network: %v", networkName)
-	net, err := database.QueryNetworkOrCurrent(networkName)
-	if err != nil {
-		return nil, fmt.Errorf("query network:%v error: %w", networkName, err)
-	}
 	logger.Debug().Msgf("network info: %v", net)
 
 	logger.Info().Msgf("network: %v", net.Name)
 	logger.Info().Msgf("dial rpc: %v", net.Rpc)
-	client, err := ethclient.DialContext(ctx, net.Rpc)
-	if err != nil {
-		return nil, fmt.Errorf("dial rpc error: %w", err)
-	}
-	defer client.Close()
 
 	logger.Info().Msg("prepare abi args")
 	methodName, _, realArgs, err := abiArgs(abiObj, methodName, args...)
@@ -221,34 +211,13 @@ func ReadContract(ctx context.Context, networkName, contract, abiJson, methodNam
 	return outputs, nil
 }
 
-func WriteContract(ctx context.Context, networkName, contract, abiJson, methodName, accountName, nonce, value, gasLimitRatio, gasLimit, gasRatio, gasPrice, gasFeeCap, gasTipCap string, accountIndex uint, eip1559 bool, noconfirm bool, args ...string) error {
+func WriteContract(ctx context.Context, client *ethclient.Client, net *database.Network, accountDetails *types.AccountDetails, contract, abiJson, methodName, accountName, nonce, value, gasLimitRatio, gasLimit, gasRatio, gasPrice, gasFeeCap, gasTipCap string, accountIndex uint, eip1559 bool, noconfirm bool, args ...string) error {
 	logger := utils.GetLogger("WriteContract")
 
-	logger.Info().Msgf("query network: %v", networkName)
-	net, err := database.QueryNetworkOrCurrent(networkName)
-	if err != nil {
-		return fmt.Errorf("query network:%v error: %w", networkName, err)
-	}
 	logger.Debug().Msgf("network info: %v", net)
 
 	logger.Info().Msgf("network: %v", net.Name)
-	logger.Info().Msgf("dial rpc: %v", net.Rpc)
-	client, err := ethclient.DialContext(ctx, net.Rpc)
-	if err != nil {
-		return fmt.Errorf("dial rpc error: %w", err)
-	}
-	defer client.Close()
 
-	logger.Info().Msgf("query account: %v with index: %v", accountName, accountIndex)
-	account, err := database.QueryAccountOrCurrent(accountName, accountIndex)
-	if err != nil {
-		return fmt.Errorf("query account error: %w", err)
-	}
-
-	accountDetails, err := types.AccountToDetails(account)
-	if err != nil {
-		return fmt.Errorf("get account details error: %w", err)
-	}
 	addressStr, err := accountDetails.Address()
 	if err != nil {
 		return fmt.Errorf("get account address error: %w", err)
