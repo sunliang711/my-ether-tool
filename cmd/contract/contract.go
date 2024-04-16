@@ -287,10 +287,10 @@ func WriteContract(ctx context.Context, client *ethclient.Client, net *database.
 	logger.Info().Msgf("GasFeeCap: %v", transactor.GasFeeCap.String())
 	logger.Info().Msgf("GasTipCap: %v", transactor.GasTipCap.String())
 	logger.Info().Msgf("Method: %v", methodName)
-	logger.Info().Msgf("Data: %v", hex.EncodeToString(input))
 	for i, param := range paramNames {
 		logger.Info().Msgf("Arg%d: %v (%v)", i, realArgs[i], param)
 	}
+	logger.Info().Msgf("Data: %v", hex.EncodeToString(input))
 
 	if !noconfirm {
 		input, err := utils.ReadChar("Send ? [y/N] ")
