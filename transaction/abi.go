@@ -70,6 +70,7 @@ func init() {
 
 }
 
+// abiStr format: functionName(Type1,Type2,...)
 func AbiEncode(abiStr string, abiArgs []string) (result []byte, err error) {
 	// selector is the first 4 bytes of hash of abiStr
 	selector := crypto.Keccak256Hash([]byte(abiStr)).Bytes()[:4]
