@@ -43,27 +43,45 @@ func (Account) TableName() string {
 // op
 
 func QueryAccount(name string) (account Account, err error) {
-	err = Conn.Model(&Account{}).First(&account, "name = ?", name).Error
+	ctx, cancel := utils.DefaultTimeoutContext()
+	defer cancel()
+
+	err = Conn.WithContext(ctx).Model(&Account{}).First(&account, "name = ?", name).Error
 	return
 }
 
 func SwitchAccount(name string, index int) (err error) {
-	// clear old one
-	err = Conn.Model(&Account{}).Where("current = true").Update("current", false).Error
+	ctx, cancel := utils.DefaultTimeoutContext()
+	defer cancel()
+
+	err = Conn.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		err := tx.Model(&Account{}).Where("current = true").Update("current", false).Error
+		if err != nil {
+			return err
+		}
+
+		err = tx.Model(&Account{}).Where("name = ?", name).Updates(map[string]any{"current": true, "current_index": index}).Error
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		return err
 	}
 
-	// set new one
-	err = Conn.Model(&Account{}).Where("name = ?", name).Updates(map[string]any{"current": true, "current_index": index}).Error
-
-	return
+	return nil
 }
 
 func AddAccount(account *Account) error {
+	ctx, cancel := utils.DefaultTimeoutContext()
+	defer cancel()
+
 	_, err := QueryAccount(account.Name)
 	if err == gorm.ErrRecordNotFound {
-		result := Conn.Create(account)
+		result := Conn.WithContext(ctx).Create(account)
 		err = result.Error
 		if err != nil {
 			return err
@@ -78,17 +96,23 @@ func AddAccount(account *Account) error {
 }
 
 func QueryAllAccounts() (accounts []Account, err error) {
-	err = Conn.Model(&Account{}).Find(&accounts).Error
+	ctx, cancel := utils.DefaultTimeoutContext()
+	defer cancel()
+
+	err = Conn.WithContext(ctx).Model(&Account{}).Find(&accounts).Error
 
 	return
 }
 
 func RemoveAccount(name string) error {
+	ctx, cancel := utils.DefaultTimeoutContext()
+	defer cancel()
+
 	_, err := QueryAccount(name)
 	if err == gorm.ErrRecordNotFound {
 		return fmt.Errorf("account: %s not exist", name)
 	} else {
-		result := Conn.Delete(&Account{}, "name = ?", name)
+		result := Conn.WithContext(ctx).Delete(&Account{}, "name = ?", name)
 		err = result.Error
 		if err != nil {
 			return err
@@ -114,7 +138,10 @@ func RemoveAccount(name string) error {
 }
 
 func CurrentAccount() (account Account, err error) {
-	err = Conn.Model(&Account{}).First(&account, "current = true").Error
+	ctx, cancel := utils.DefaultTimeoutContext()
+	defer cancel()
+
+	err = Conn.WithContext(ctx).Model(&Account{}).First(&account, "current = true").Error
 	if err == gorm.ErrRecordNotFound {
 		err = fmt.Errorf("no such account")
 	}
@@ -123,17 +150,25 @@ func CurrentAccount() (account Account, err error) {
 
 func QueryAccountOrCurrent(name string, index uint) (*Account, error) {
 	var (
-		acc Account
-		err error
+		acc    Account
+		err    error
+		logger = utils.GetLogger("QueryAccountOrCurrent")
 	)
+
 	if name != "" {
+		logger.Info().Msgf("Query account: %v", name)
 		acc, err = QueryAccount(name)
 		acc2 := acc.SwitchTo(index)
 		return &acc2, err
 	}
-	acc, err = CurrentAccount()
 
-	return &acc, err
+	logger.Info().Msgf("Query current account")
+	acc, err = CurrentAccount()
+	if err != nil {
+		return nil, err
+	}
+
+	return &acc, nil
 }
 
 // 那么为空时表示所有
@@ -142,7 +177,10 @@ func LockAccount(name string, password string) error {
 		accountList []Account
 		logger      = utils.GetLogger("LockAccount")
 	)
-	err := Conn.Model(&Account{}).Where(&Account{Name: name}).Find(&accountList).Error
+	ctx, cancel := utils.DefaultTimeoutContext()
+	defer cancel()
+
+	err := Conn.WithContext(ctx).Model(&Account{}).Where(&Account{Name: name}).Find(&accountList).Error
 	if err != nil {
 		return fmt.Errorf("query account by name: %s error: %w", name, err)
 	}
@@ -155,7 +193,7 @@ func LockAccount(name string, password string) error {
 		// encrypt
 		logger.Info().Msgf("lock account: %v", acc.Name)
 		encrypted := utils.Encrypt(password, acc.Value)
-		err = Conn.Model(&Account{}).Where(&Account{Name: acc.Name}).Updates(map[string]any{"encrypted": true, "value": encrypted}).Error
+		err = Conn.WithContext(ctx).Model(&Account{}).Where(&Account{Name: acc.Name}).Updates(map[string]any{"encrypted": true, "value": encrypted}).Error
 		if err != nil {
 			return fmt.Errorf("lock account: %v error: %w", acc.Name, err)
 		}

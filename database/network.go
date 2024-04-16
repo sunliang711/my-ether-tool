@@ -28,34 +28,52 @@ func (Network) TableName() string {
 
 // op
 func QueryNetwork(name string) (network Network, err error) {
-	err = Conn.Model(&Network{}).First(&network, "name = ?", name).Error
+	ctx, cancel := utils.DefaultTimeoutContext()
+	defer cancel()
+
+	err = Conn.WithContext(ctx).Model(&Network{}).First(&network, "name = ?", name).Error
 
 	return
 }
 
 func SwitchNetwork(name string) error {
+	ctx, cancel := utils.DefaultTimeoutContext()
+	defer cancel()
+
 	logger := utils.GetLogger("SwitchNetwork")
 	logger.Info().Msgf("switch to network: %v", name)
 
-	// 清空老的current
-	err := Conn.Model(&Network{}).Where("current = true").Update("current", false).Error
+	err := Conn.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		err := tx.Model(&Network{}).Where("current = true").Update("current", false).Error
+		if err != nil {
+			return err
+		}
+
+		err = tx.Model(&Network{}).Where("name = ?", name).Update("current", true).Error
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
 	if err != nil {
 		return err
 	}
-	// 设置新的current
-	err = Conn.Model(&Network{}).Where("name = ?", name).Update("current", true).Error
-	return err
+
+	return nil
 }
 
 func AddNetwork(network *Network) error {
+	ctx, cancel := utils.DefaultTimeoutContext()
+	defer cancel()
+
 	logger := utils.GetLogger("AddNetwork")
 	logger.Info().Msgf("add network: %v", network.Name)
 
 	logger.Debug().Msgf("query network: %v", network.Name)
-
 	_, err := QueryNetwork(network.Name)
 	if err == gorm.ErrRecordNotFound {
-		result := Conn.Create(network)
+		result := Conn.WithContext(ctx).Create(network)
 		err = result.Error
 		if err != nil {
 			return err
@@ -71,16 +89,22 @@ func AddNetwork(network *Network) error {
 }
 
 func QueryAllNetworks() (networks []Network, err error) {
-	err = Conn.Model(&Network{}).Find(&networks).Error
+	ctx, cancel := utils.DefaultTimeoutContext()
+	defer cancel()
+
+	err = Conn.WithContext(ctx).Model(&Network{}).Find(&networks).Error
 
 	return
 }
 func RemoveNetwork(name string) error {
+	ctx, cancel := utils.DefaultTimeoutContext()
+	defer cancel()
+
 	_, err := QueryNetwork(name)
 	if err == gorm.ErrRecordNotFound {
 		return fmt.Errorf("network: %s not exist", name)
 	} else {
-		result := Conn.Delete(&Network{}, "name = ?", name)
+		result := Conn.WithContext(ctx).Delete(&Network{}, "name = ?", name)
 		err = result.Error
 		if err != nil {
 			return err
@@ -105,7 +129,10 @@ func RemoveNetwork(name string) error {
 }
 
 func CurrentNetwork() (network Network, err error) {
-	err = Conn.Model(&Network{}).First(&network, "current = true").Error
+	ctx, cancel := utils.DefaultTimeoutContext()
+	defer cancel()
+
+	err = Conn.WithContext(ctx).Model(&Network{}).First(&network, "current = true").Error
 	if err == gorm.ErrRecordNotFound {
 		err = fmt.Errorf("no current network")
 	}
@@ -114,14 +141,22 @@ func CurrentNetwork() (network Network, err error) {
 
 func QueryNetworkOrCurrent(name string) (*Network, error) {
 	var (
-		net Network
-		err error
+		net    Network
+		err    error
+		logger = utils.GetLogger("QueryNetworkOrCurrent")
 	)
+
 	if name != "" {
+		logger.Info().Msgf("Query network: %v", name)
 		net, err = QueryNetwork(name)
 		return &net, err
 	}
-	net, err = CurrentNetwork()
 
-	return &net, err
+	logger.Info().Msgf("Query current network")
+	net, err = CurrentNetwork()
+	if err != nil {
+		return nil, err
+	}
+
+	return &net, nil
 }
