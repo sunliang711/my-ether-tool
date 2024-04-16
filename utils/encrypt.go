@@ -33,6 +33,7 @@ func Encrypt(passphrase, plaintext string) string {
 	return hex.EncodeToString(salt) + "-" + hex.EncodeToString(iv) + "-" + hex.EncodeToString(data)
 }
 
+// NOTE： 密码错误时，返回值为空
 func Decrypt(passphrase, ciphertext string) string {
 	arr := strings.Split(ciphertext, "-")
 	salt, _ := hex.DecodeString(arr[0])

@@ -24,6 +24,8 @@ var (
 	spender  *string
 	amount   *string
 	decimals *uint8
+
+	noconfirm *bool
 )
 
 func init() {
@@ -37,6 +39,8 @@ func init() {
 	spender = approveCmd.Flags().String("spender", "", "token spender")
 	amount = approveCmd.Flags().String("amount", "", "token amount")
 	decimals = approveCmd.Flags().Uint8("decimals", 0, "token decimals")
+
+	noconfirm = approveCmd.Flags().Bool("noconfirm", false, "noconfirm")
 }
 
 func approveToken(cmd *cobra.Command, args []string) {
@@ -63,7 +67,7 @@ func approveToken(cmd *cobra.Command, args []string) {
 	realAmount, err := utils.Erc20AmountFromHuman(*amount, decimalsStr)
 	utils.ExitWhenErr(logger, err, "convert amount error: %v", err)
 
-	hash, err := erc20.WriteErc20(ctx, *contract, *network, *account, *accountIndex, erc20.Erc20Approve, *spender, realAmount, "")
+	hash, err := erc20.WriteErc20(ctx, *contract, *noconfirm, *network, *account, *accountIndex, erc20.Erc20Approve, *spender, realAmount, "")
 	utils.ExitWhenErr(logger, err, "approve token error: %v", err)
 
 	// fmt.Printf("tx hash: %s\n", hash)

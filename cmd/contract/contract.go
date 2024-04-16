@@ -309,7 +309,7 @@ func WriteContract(ctx context.Context, networkName, contract, abiJson, methodNa
 	transactor.GasTipCap = txParams.GasTipCap
 	transactor.Value = txParams.Value
 
-	logger.Info().Msgf("From: %v", accountDetails.Address)
+	logger.Info().Msgf("From: %v", addressStr)
 	logger.Info().Msgf("To: %v (contract)", contract)
 	logger.Info().Msgf("Value: %v", value)
 	logger.Info().Msgf("Nonce: %v", transactor.Nonce)

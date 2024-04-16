@@ -25,6 +25,8 @@ var (
 	to       *string
 	amount   *string
 	decimals *uint8
+
+	noconfirm *bool
 )
 
 func init() {
@@ -39,6 +41,8 @@ func init() {
 	to = transferFromCmd.Flags().String("to", "", "to address")
 	amount = transferFromCmd.Flags().String("amount", "", "token amount")
 	decimals = transferFromCmd.Flags().Uint8("decimals", 0, "token decimals(optional)")
+
+	noconfirm = transferFromCmd.Flags().Bool("noconfirm", false, "noconfirm")
 }
 
 func transferToken(cmd *cobra.Command, args []string) {
@@ -69,7 +73,7 @@ func transferToken(cmd *cobra.Command, args []string) {
 	realAmount, err := utils.Erc20AmountFromHuman(*amount, decimalsStr)
 	utils.ExitWhenErr(logger, err, "convert amount error: %v", err)
 
-	hash, err := erc20.WriteErc20(ctx, *contract, *network, *account, *accountIndex, erc20.Erc20TransferFrom, *from, *to, realAmount)
+	hash, err := erc20.WriteErc20(ctx, *contract, *noconfirm, *network, *account, *accountIndex, erc20.Erc20TransferFrom, *from, *to, realAmount)
 	utils.ExitWhenErr(logger, err, "transfer token error: %v", err)
 
 	// fmt.Printf("tx hash: %s\n", hash)

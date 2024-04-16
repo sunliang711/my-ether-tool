@@ -12,6 +12,7 @@ import (
 	database "met/database"
 	types "met/types"
 	utils "met/utils"
+	"os"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -157,23 +158,23 @@ const (
 )
 
 // 写erc20
-func WriteErc20(ctx context.Context, contract string, networkName string, accountName string, accountIndex uint, funcType Erc20WritFuncType, arg1, arg2, arg3 string) (string, error) {
-	log := log.With().Str("func", "ReadErc20").Logger()
+func WriteErc20(ctx context.Context, contract string, noconfirm bool, networkName string, accountName string, accountIndex uint, funcType Erc20WritFuncType, arg1, arg2, arg3 string) (string, error) {
+	logger := utils.GetLogger("WriteErc20")
 
-	log.Info().Msgf("query network: %v", networkName)
+	logger.Info().Msgf("query network: %v", networkName)
 	net, err := database.QueryNetworkOrCurrent(networkName)
 	if err != nil {
 		return "", fmt.Errorf("query network error: %w", err)
 	}
-	log.Debug().Msgf("network info: %v", net)
+	logger.Debug().Msgf("network info: %v", net)
 
-	log.Info().Msgf("dial rpc: %v", net.Rpc)
+	logger.Info().Msgf("dial rpc: %v", net.Rpc)
 	client, err := ethclient.DialContext(ctx, net.Rpc)
 	if err != nil {
 		return "", fmt.Errorf("dial rpc error: %w", err)
 	}
 
-	log.Info().Msgf("query account: %v with index: %v", accountName, accountIndex)
+	logger.Info().Msgf("query account: %v with index: %v", accountName, accountIndex)
 	account, err := database.QueryAccountOrCurrent(accountName, accountIndex)
 	if err != nil {
 		return "", fmt.Errorf("query account error: %w", err)
@@ -187,7 +188,7 @@ func WriteErc20(ctx context.Context, contract string, networkName string, accoun
 	if err != nil {
 		return "", fmt.Errorf("get account address error: %w", err)
 	}
-	log.Info().Msgf("account info: name: %v address: %v", accountDetails.Name, addressStr)
+	logger.Info().Msgf("account info: name: %v address: %v", accountDetails.Name, addressStr)
 
 	privateKeyStr, err := accountDetails.PrivateKey()
 	if err != nil {
@@ -200,7 +201,7 @@ func WriteErc20(ctx context.Context, contract string, networkName string, accoun
 		return "", fmt.Errorf("create private key error: %w", err)
 	}
 
-	log.Info().Msg("query chain id")
+	logger.Info().Msg("query chain id")
 	chainId, err := client.ChainID(ctx)
 	if err != nil {
 		return "", fmt.Errorf("get chain id error: %w", err)
@@ -213,6 +214,9 @@ func WriteErc20(ctx context.Context, contract string, networkName string, accoun
 
 	contractAddress := common.HexToAddress(contract)
 	erc20Instance, err := utils.NewErc20(contractAddress, client)
+	if err != nil {
+		return "", fmt.Errorf("NewErc20 error: %w", err)
+	}
 
 	switch funcType {
 	case Erc20Transfer:
@@ -225,9 +229,25 @@ func WriteErc20(ctx context.Context, contract string, networkName string, accoun
 
 		to := common.HexToAddress(arg1)
 		amount := big.NewInt(0)
-		amount.SetString(arg2, 10)
+		if _, ok := amount.SetString(arg2, 10); !ok {
+			return "", fmt.Errorf("invalid amount: %v", arg2)
+		}
 
-		log.Info().Msg("call erc20 transfer")
+		logger.Info().Msgf("Call erc20 transfer")
+		logger.Info().Msgf("From: %v", addressStr)
+		logger.Info().Msgf("To: %v", to)
+		logger.Info().Msgf("Amount: %v", amount)
+		logger.Info().Msgf("Amount readable: %v", arg2)
+
+		if !noconfirm {
+			input, err := utils.ReadChar("Send ? [y/N] ")
+			utils.ExitWhenErr(logger, err, "read input error: %s", err)
+
+			if input != 'y' {
+				os.Exit(0)
+			}
+
+		}
 		tx, err := erc20Instance.Transfer(transactor, to, amount)
 		if err != nil {
 			return "", err
@@ -249,9 +269,26 @@ func WriteErc20(ctx context.Context, contract string, networkName string, accoun
 		from := common.HexToAddress(arg1)
 		to := common.HexToAddress(arg2)
 		amount := big.NewInt(0)
-		amount.SetString(arg3, 10)
+		if _, ok := amount.SetString(arg3, 10); !ok {
+			return "", fmt.Errorf("invalid amount")
+		}
 
-		log.Info().Msg("call erc20 transferFrom")
+		logger.Info().Msgf("Call erc20 transferFrom")
+		logger.Info().Msgf("From: %v", from)
+		logger.Info().Msgf("To: %v", to)
+		logger.Info().Msgf("Amount: %v", amount)
+		logger.Info().Msgf("Amount readable: %v", arg3)
+
+		if !noconfirm {
+			input, err := utils.ReadChar("Send ? [y/N] ")
+			utils.ExitWhenErr(logger, err, "read input error: %s", err)
+
+			if input != 'y' {
+				os.Exit(0)
+			}
+
+		}
+
 		tx, err := erc20Instance.TransferFrom(transactor, from, to, amount)
 		if err != nil {
 			return "", err
@@ -269,9 +306,26 @@ func WriteErc20(ctx context.Context, contract string, networkName string, accoun
 
 		spender := common.HexToAddress(arg1)
 		amount := big.NewInt(0)
-		amount.SetString(arg2, 10)
+		if _, ok := amount.SetString(arg2, 10); !ok {
+			return "", fmt.Errorf("invalid amount: %v", arg2)
+		}
 
-		log.Info().Msg("call erc20 approve")
+		logger.Info().Msgf("Call erc20 approve")
+		logger.Info().Msgf("Owner: %v", addressStr)
+		logger.Info().Msgf("Spender: %v", spender)
+		logger.Info().Msgf("Amount: %v", amount)
+		logger.Info().Msgf("Amount readable: %v", arg2)
+
+		if !noconfirm {
+			input, err := utils.ReadChar("Send ? [y/N] ")
+			utils.ExitWhenErr(logger, err, "read input error: %s", err)
+
+			if input != 'y' {
+				os.Exit(0)
+			}
+
+		}
+
 		tx, err := erc20Instance.Approve(transactor, spender, amount)
 		if err != nil {
 			return "", err
