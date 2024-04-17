@@ -215,11 +215,11 @@ func BuildTransaction(ctx context.Context, client *ethclient.Client, from string
 			// 计算手续费 = 21000 * gasPrice
 			txFee := big.NewInt(OnlyTransferGas)
 			txFee.Mul(txFee, price)
-			fmt.Printf("sendAll txFee: %s\n", txFee.String())
+			logger.Info().Msgf("sendAll tx fee: %v", txFee.String())
 
 			// 剩下的value为所有待发送value
 			value1 = currentBalance.Sub(currentBalance, txFee)
-			fmt.Printf("sendAll value: %s\n", value1.String())
+			logger.Info().Msgf("sendAll value: %v", value1.String())
 
 			// newValue = value1
 			vv, err := utils.FormatUnits(value1.String(), utils.UnitEth)
