@@ -98,6 +98,9 @@ func AccountToDetails(account *database.Account) (*AccountDetails, error) {
 		address = out.Keys[0].EthereumAddress
 	case PrivateKeyType:
 		privateKey = account.Value
+		if !strings.HasPrefix(privateKey, "0x") {
+			privateKey = "0x" + privateKey
+		}
 		pubkey, err := hd.PrivateKeyToPublicKey(privateKey)
 		if err != nil {
 			return nil, err

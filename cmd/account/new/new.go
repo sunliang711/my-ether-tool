@@ -1,6 +1,7 @@
 package new
 
 import (
+	"errors"
 	"met/cmd/account"
 	database "met/database"
 	hd "met/hd"
@@ -10,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/spf13/cobra"
+	"gorm.io/gorm"
 )
 
 var newCmd = &cobra.Command{
@@ -41,7 +43,22 @@ func createWallet(cmd *cobra.Command, args []string) {
 	var (
 		newAccount *database.Account
 		logger     = utils.GetLogger("createWallet")
+		err        error
 	)
+
+	if *name != "" {
+		_, err = database.QueryAccount(*name)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				// ok
+			} else {
+				// other error
+				utils.ExitWhenErr(logger, err, "query acocunt: %v error: %v", *name, err)
+			}
+		} else {
+			utils.ExitWhen(logger, true, "account: %v already exist", *name)
+		}
+	}
 
 	switch *accountType {
 	case types.MnemonicType:

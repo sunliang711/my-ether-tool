@@ -1,6 +1,7 @@
 package add
 
 import (
+	"errors"
 	"fmt"
 
 	"met/cmd/account"
@@ -10,6 +11,7 @@ import (
 	utils "met/utils"
 
 	"github.com/spf13/cobra"
+	"gorm.io/gorm"
 )
 
 var importCmd = &cobra.Command{
@@ -47,6 +49,18 @@ func importAccount(cmd *cobra.Command, args []string) {
 	utils.ExitWhen(logger, *name == "", "need name")
 	// utils.ExitWithMsgWhen(*value == "", "need value\n")
 
+	_, err = database.QueryAccount(*name)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// ok
+		} else {
+			// other error
+			utils.ExitWhenErr(logger, err, "query acocunt: %v error: %v", *name, err)
+		}
+	} else {
+		utils.ExitWhen(logger, true, "account: %v already exist", *name)
+	}
+
 	if *accountType != types.MnemonicType && *accountType != types.PrivateKeyType {
 		utils.ExitWhen(logger, true, "invalid account type, use 'mnemonic' or 'private key'")
 	}
@@ -78,7 +92,17 @@ func importAccount(cmd *cobra.Command, args []string) {
 		CurrentIndex: 0,
 	}
 
+	details, err := types.AccountToDetails(&account)
+	utils.ExitWhenErr(logger, err, "invalid data")
+
 	err = database.AddAccount(&account)
 	utils.ExitWhenErr(logger, err, "Add account error: %s", err)
 
+	logger.Info().Msgf("Account imported")
+	logger.Info().Msgf("Account Name: %v", details.Name)
+	logger.Info().Msgf("Account Type: %v", details.Type)
+
+	addressStr, err := details.Address()
+	utils.ExitWhenErr(logger, err, "get address error: %v", err)
+	logger.Info().Msgf("Account Address: %v", addressStr)
 }
