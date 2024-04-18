@@ -1,4 +1,4 @@
-package contract
+package transaction
 
 import (
 	"encoding/hex"

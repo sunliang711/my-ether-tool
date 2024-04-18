@@ -10,12 +10,323 @@ import (
 	"strconv"
 	"strings"
 
+	mTypes "met/types"
+
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/shopspring/decimal"
 )
+
+func BuildTx(ctx context.Context, client *ethclient.Client, from string, to string, value *string, data []byte, gasMode mTypes.GasMode, nonce, chainId, gasLimit, gasLimitRatio, gasRatio, gasPrice, gasTipCap, gasFeeCap string, sendAll bool) (tx *types.Transaction, err error) {
+	var (
+		nonce0     uint64
+		gasLimit0  uint64
+		chainId0   *big.Int
+		value0     *big.Int
+		gasFeeCap0 *big.Int
+		gasTipCap0 *big.Int
+		gasPrice0  *big.Int
+		ok         bool
+		logger     = utils.GetLogger("BuildTx")
+	)
+
+	// 1. check flags
+	if gasLimit != "" && gasLimitRatio != "" {
+		return nil, errors.New("gasLimit conflicts with gasLimitRatio")
+	}
+
+	switch gasMode {
+	case mTypes.GasModeAuto:
+		if gasTipCap != "" {
+			return nil, errors.New("no need for gasTipCap in auto gas mode")
+		}
+		if gasFeeCap != "" {
+			return nil, errors.New("no need for gasFeeCap in auto gas mode")
+		}
+		if gasPrice != "" {
+			return nil, errors.New("no need for gasPrice in auto gas mode")
+		}
+	case mTypes.GasModeLegacy:
+		if gasTipCap != "" {
+			return nil, errors.New("no need for gasTipCap in legacy gas mode")
+		}
+		if gasFeeCap != "" {
+			return nil, errors.New("no need for gasFeeCap in legacy gas mode")
+		}
+	case mTypes.GasModeEip1559:
+		if gasPrice != "" {
+			return nil, errors.New("no need for gasPrice in eip1559 gas mode")
+		}
+	default:
+		return nil, fmt.Errorf("invalid gasMode: %v", gasMode)
+	}
+
+	if sendAll {
+		if gasMode != mTypes.GasModeLegacy {
+			return nil, fmt.Errorf("sendAll only works in legacy gas mode")
+		}
+		if len(data) > 0 {
+			return nil, fmt.Errorf("sendAll do not support input data")
+		}
+	}
+
+	// 2. init vars
+	from = strings.TrimPrefix(from, "0x")
+	to = strings.TrimPrefix(to, "0x")
+	fromAddress := common.HexToAddress(from)
+	toAddress := common.HexToAddress(to)
+
+	// value
+	if *value != "" {
+		logger.Debug().Msgf("parse value: %v", *value)
+		value0, err = utils.ParseUnits(*value, utils.UnitEth)
+		if err != nil {
+			return nil, fmt.Errorf("parse value: %v error: %w", *value, err)
+		}
+	}
+	logger.Debug().Msgf("value: %v", value0.String())
+
+	// nonce
+	if nonce != "" {
+		logger.Debug().Msgf("parse nonce: %v", nonce)
+		nonce0, err = strconv.ParseUint(nonce, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("parse nonce: %v error: %w", nonce, err)
+		}
+	} else {
+		logger.Debug().Msgf("query nonce..")
+		nonce0, err = client.PendingNonceAt(ctx, fromAddress)
+		if err != nil {
+			return nil, fmt.Errorf("query nonce error: %w", err)
+		}
+	}
+	logger.Debug().Msgf("nonce: %v", nonce0)
+
+	// chainId
+	if chainId != "" {
+		logger.Debug().Msgf("parse chainId: %v", chainId)
+		if chainId0, ok = big.NewInt(0).SetString(chainId, 10); !ok {
+			return nil, fmt.Errorf("invalid chainId: %v", chainId)
+		}
+
+	} else {
+		logger.Debug().Msgf("query chainId..")
+		chainId0, err = client.ChainID(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("query chainId error: %w", err)
+		}
+	}
+	logger.Debug().Msgf("chainId: %v", chainId0.String())
+
+	// gasLimit
+	if gasLimit != "" {
+		logger.Debug().Msgf("parse gasLimit: %v", gasLimit)
+		gasLimit0, err = strconv.ParseUint(gasLimit, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("parse gasLimit: %v error: %w", gasLimit, err)
+		}
+	} else {
+		gasLimit0, err = client.EstimateGas(ctx, ethereum.CallMsg{
+			From:  fromAddress,
+			To:    &toAddress,
+			Value: value0,
+			Data:  data,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("estimate gas error: %w", err)
+		}
+	}
+	logger.Debug().Msgf("gasLimit: %v", gasLimit0)
+
+	// gasLimitRatio
+	if gasLimitRatio != "" {
+		logger.Debug().Msgf("parse gasLimitRatio: %v", gasLimitRatio)
+		gasLimitRatio0, err := decimal.NewFromString(gasLimitRatio)
+		if err != nil {
+			return nil, fmt.Errorf("parse gasLimitRatio: %v error: %w", gasLimitRatio, err)
+		}
+		logger.Debug().Msgf("scale gasLimit by ratio: %v", gasLimitRatio)
+		newGasLimit := decimal.NewFromInt(int64(gasLimit0)).Mul(gasLimitRatio0).IntPart()
+		gasLimit0 = uint64(newGasLimit)
+		logger.Debug().Msgf("after scale, gasLimit: %v", gasLimit0)
+	}
+
+	// gas
+	if gasMode == mTypes.GasModeAuto {
+		logger.Debug().Msgf("auto gas mode")
+		logger.Debug().Msgf("query latest block header..")
+		header, err := client.HeaderByNumber(ctx, nil)
+		if err != nil {
+			return nil, fmt.Errorf("get latest block header error: %w", err)
+		}
+
+		baseFee := header.BaseFee
+		if baseFee != nil {
+			// support 1559
+			logger.Debug().Msgf("support 1559")
+			logger.Debug().Msgf("query gasTipCap")
+			gasTipCap0, err = client.SuggestGasTipCap(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("query gasTipCap error: %w", err)
+			}
+
+			gasFeeCap0 = new(big.Int).Add(gasTipCap0, new(big.Int).Mul(baseFee, big.NewInt(2)))
+
+			logger.Debug().Msgf("gasFeeCap: %v", gasFeeCap0.String())
+			logger.Debug().Msgf("gasTipCap: %v", gasTipCap0.String())
+
+			gasMode = mTypes.GasModeEip1559
+
+		} else {
+			// not support 1559
+			logger.Debug().Msgf("not support 1559")
+			logger.Debug().Msgf("query gasPrice")
+			gasPrice0, err = client.SuggestGasPrice(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("query gasPrice error: %w", err)
+			}
+
+			logger.Debug().Msgf("gasPrice: %v", gasPrice0)
+
+			gasMode = mTypes.GasModeLegacy
+		}
+
+	} else if gasMode == mTypes.GasModeLegacy {
+		logger.Debug().Msgf("legacy gas mode")
+		if gasPrice != "" {
+			logger.Debug().Msgf("parse gasPrice: %v", gasPrice)
+			gasPrice0, err = utils.ParseUnits(gasPrice, utils.UnitGwei)
+			if err != nil {
+				return nil, fmt.Errorf("parse gasPrice: %v error: %w", gasPrice, err)
+			}
+		} else {
+			gasPrice0, err = client.SuggestGasPrice(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("query gasPrice error: %w", err)
+			}
+		}
+
+		logger.Debug().Msgf("gasPrice: %v", gasPrice0)
+
+		if sendAll {
+			logger.Info().Msgf("sendAll mode")
+
+			logger.Debug().Msgf("query balance for address: %v", from)
+			currentBalance, err := client.BalanceAt(ctx, fromAddress, nil)
+			if err != nil {
+				return nil, fmt.Errorf("query balance for address: %v error: %w", from, err)
+			}
+
+			txFee := new(big.Int).Mul(big.NewInt(OnlyTransferGas), gasPrice0)
+			logger.Info().Msgf("sendAll tx fee: %v", txFee.String())
+
+			value0 = new(big.Int).Sub(currentBalance, txFee)
+			logger.Info().Msgf("sendAll value: %v", value0.String())
+
+			vv, err := utils.FormatUnits(value0.String(), utils.UnitEth)
+			if err != nil {
+				return nil, fmt.Errorf("format value: %v error: %w", value0.String(), err)
+			}
+			*value = vv
+		}
+
+	} else if gasMode == mTypes.GasModeEip1559 {
+		logger.Debug().Msgf("eip1559 gas mode")
+
+		if gasTipCap != "" {
+			logger.Debug().Msgf("parse gasTipCap: %v", gasTipCap)
+			gasTipCap0, err = utils.ParseUnits(gasTipCap, utils.UnitGwei)
+			if err != nil {
+				return nil, fmt.Errorf("parse gasTipCap: %v error: %w", gasTipCap, err)
+			}
+
+		} else {
+			logger.Debug().Msgf("query gasTipCap..")
+			gasTipCap0, err = client.SuggestGasTipCap(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("query gasTipCap error: %w", err)
+			}
+
+		}
+		logger.Debug().Msgf("gasTipCap: %v", gasTipCap0)
+
+		if gasFeeCap != "" {
+			logger.Debug().Msgf("parse gasFeeCap: %v", gasFeeCap)
+			gasFeeCap0, err = utils.ParseUnits(gasFeeCap, utils.UnitGwei)
+			if err != nil {
+				return nil, fmt.Errorf("parse gasFeeCap: %v error: %w", gasFeeCap, err)
+			}
+		} else {
+			logger.Debug().Msgf("calculate gasFeeCap")
+			logger.Debug().Msgf("query latest block header..")
+			header, err := client.HeaderByNumber(ctx, nil)
+			if err != nil {
+				return nil, fmt.Errorf("get latest block header error: %w", err)
+			}
+
+			baseFee := header.BaseFee
+			if baseFee == nil {
+				return nil, fmt.Errorf("cannot get baseFee in eip1559 gas mode")
+			}
+			logger.Debug().Msgf("query gasTipCap..")
+
+			gasFeeCap0 = new(big.Int).Add(gasTipCap0, new(big.Int).Mul(baseFee, big.NewInt(2)))
+
+		}
+		logger.Debug().Msgf("gasFeeCap: %v", gasFeeCap0.String())
+
+	}
+
+	if gasRatio != "" {
+		logger.Debug().Msgf("parse gasRatio: %v", gasRatio)
+		gasRatio0, err := decimal.NewFromString(gasRatio)
+		if err != nil {
+			return nil, fmt.Errorf("parse gasRatio: %v error: %w", gasRatio, err)
+		}
+
+		if gasPrice0 != nil {
+			gasPrice0 = decimal.NewFromBigInt(gasPrice0, 0).Mul(gasRatio0).BigInt()
+		}
+		if gasFeeCap0 != nil {
+			gasFeeCap0 = decimal.NewFromBigInt(gasFeeCap0, 0).Mul(gasRatio0).BigInt()
+		}
+		if gasTipCap0 != nil {
+			gasTipCap0 = decimal.NewFromBigInt(gasTipCap0, 0).Mul(gasRatio0).BigInt()
+		}
+
+		logger.Debug().Msgf("after gasRatio, gasPrice: %v", gasPrice0.String())
+		logger.Debug().Msgf("after gasRatio, gasFeeCap: %v", gasFeeCap0.String())
+		logger.Debug().Msgf("after gasRatio, gasTipCap: %v", gasTipCap0.String())
+	}
+
+	if gasMode == mTypes.GasModeLegacy {
+		tx = types.NewTx(&types.AccessListTx{
+			ChainID:    chainId0,
+			Nonce:      nonce0,
+			GasPrice:   gasPrice0,
+			Gas:        gasLimit0,
+			To:         &toAddress,
+			Value:      value0,
+			Data:       data,
+			AccessList: []types.AccessTuple{},
+		})
+	} else if gasMode == mTypes.GasModeEip1559 {
+		tx = types.NewTx(&types.DynamicFeeTx{
+			ChainID:   chainId0,
+			Nonce:     nonce0,
+			GasTipCap: gasTipCap0,
+			GasFeeCap: gasFeeCap0,
+			Gas:       gasLimit0,
+			To:        &toAddress,
+			Value:     value0,
+			Data:      data,
+		})
+	}
+
+	return
+}
 
 // @param from  from address of tx
 // @param to    to address of tx

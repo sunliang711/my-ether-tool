@@ -36,7 +36,8 @@ func init() {
 	// will be global for your application.
 
 	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.my-ether-tool.yaml)")
-	RootCmd.PersistentFlags().String("loglevel", "info", "log level: trace debug info warn error fatal")
+	RootCmd.PersistentFlags().String("loglevel", "", "log level: trace debug info warn error fatal (loglevel has high priority than verbose)")
+	RootCmd.PersistentFlags().BoolP("verbose", "v", false, "verbose message (debug loglevel)")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
@@ -44,7 +45,26 @@ func init() {
 }
 
 func rootPreRun(cmd *cobra.Command, args []string) error {
-	err := utils.SetLogger(cmd)
+	loglevel := cmd.Flag("loglevel").Value.String()
+	verbose, err := cmd.Flags().GetBool("verbose")
+	if err != nil {
+		panic(err)
+	}
+
+	var levelStr string
+
+	// loglevel 优先级高于verbose
+	if loglevel != "" {
+		levelStr = loglevel
+	} else {
+		if verbose {
+			levelStr = "debug"
+		} else {
+			levelStr = "info"
+		}
+	}
+
+	err = utils.SetLogger(levelStr)
 	if err != nil {
 		return err
 	}

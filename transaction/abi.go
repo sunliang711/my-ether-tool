@@ -246,3 +246,121 @@ func AbiDecode(abiStr string, encoded string) {
 	}
 
 }
+
+func ParseAbi(abiJson string) (*abi.ABI, error) {
+	abiObj, err := abi.JSON(strings.NewReader(abiJson))
+	if err != nil {
+		return nil, err
+	}
+
+	return &abiObj, nil
+}
+
+// 准备abi中指定method的实际参数
+// 因为args是传递过来的string类型的
+// 要把他们转换成实际的值，比如*big.Int common.Address []byte 等等
+func AbiArgs(abiObj *abi.ABI, methodName string, args ...string) (string, []string, []interface{}, error) {
+	var (
+		realArgs   []interface{}
+		paramNames []string
+		logger     = utils.GetLogger("abiArgs")
+	)
+
+	methodNum := len(abiObj.Methods)
+	if methodNum == 0 {
+		return "", nil, nil, fmt.Errorf("no method found in abi")
+	}
+
+	var method *abi.Method
+	// 如果abi中只有一个method，那么忽略methodName
+	if methodNum == 1 {
+		for name, m := range abiObj.Methods {
+			if methodName != "" {
+				logger.Debug().Msgf("ignore method name")
+			}
+			logger.Debug().Msgf("use unique method: %v", name)
+			method = &m
+		}
+	} else {
+		if m, ok := abiObj.Methods[methodName]; ok {
+			method = &m
+		}
+	}
+
+	if method == nil {
+		return "", nil, nil, fmt.Errorf("can not get abi method by name: %v", methodName)
+	}
+
+	if len(args) != len(method.Inputs) {
+		return "", nil, nil, fmt.Errorf("arg count not match abi input count")
+	}
+
+	for i, m := range method.Inputs {
+		arg := args[i]
+
+		v, err := parseAbiType(m.Type, arg)
+		if err != nil {
+			return "", nil, nil, err
+		}
+		logger.Debug().Msgf("input type: %v, input value: %v", m.Type.String(), arg)
+
+		realArgs = append(realArgs, v)
+		paramNames = append(paramNames, m.Type.String())
+	}
+
+	return method.Name, paramNames, realArgs, nil
+}
+
+type NameValue struct {
+	Name  string
+	Value string
+}
+
+func ParseOutput(abiObj *abi.ABI, methodName string, results []any) ([]NameValue, error) {
+	methodNum := len(abiObj.Methods)
+	if methodNum == 0 {
+		return nil, fmt.Errorf("no method found in abi")
+	}
+
+	var method *abi.Method
+	// 如果abi中只有一个method，那么忽略methodName
+	if methodNum == 1 {
+		for name, m := range abiObj.Methods {
+			if methodName != "" {
+				fmt.Printf("ignore method name\n")
+			}
+			fmt.Printf("use unique method: %v\n", name)
+			method = &m
+		}
+	} else {
+		if m, ok := abiObj.Methods[methodName]; ok {
+			method = &m
+		}
+	}
+
+	if method == nil {
+		return nil, fmt.Errorf("can not get abi method by name: %v", methodName)
+	}
+
+	if len(results) != len(method.Outputs) {
+		return nil, fmt.Errorf("result count not match abi output count")
+	}
+
+	var nameValues []NameValue
+
+	for i, output := range method.Outputs {
+		result := results[i]
+		r, err := decodeOutput(output.Type, result)
+		if err != nil {
+			return nil, err
+		}
+
+		nameValues = append(nameValues, NameValue{
+			Name:  output.Name,
+			Value: r,
+		})
+
+	}
+
+	return nameValues, nil
+}

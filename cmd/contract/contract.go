@@ -15,7 +15,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -50,130 +49,130 @@ func init() {
 	ContractCmd.PersistentFlags().StringArray("args", nil, "arguments of abi (--args xx1 --args xx2 ...)")
 }
 
-func parseAbi(abiJson string) (*abi.ABI, error) {
-	abiObj, err := abi.JSON(strings.NewReader(abiJson))
-	if err != nil {
-		return nil, err
-	}
+// func parseAbi(abiJson string) (*abi.ABI, error) {
+// 	abiObj, err := abi.JSON(strings.NewReader(abiJson))
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	return &abiObj, nil
-}
+// 	return &abiObj, nil
+// }
 
-// 准备abi中指定method的实际参数
-// 因为args是传递过来的string类型的
-// 要把他们转换成实际的值，比如*big.Int common.Address []byte 等等
-func abiArgs(abiObj *abi.ABI, methodName string, args ...string) (string, []string, []interface{}, error) {
-	var (
-		realArgs   []interface{}
-		paramNames []string
-		logger     = utils.GetLogger("abiArgs")
-	)
+// // 准备abi中指定method的实际参数
+// // 因为args是传递过来的string类型的
+// // 要把他们转换成实际的值，比如*big.Int common.Address []byte 等等
+// func abiArgs(abiObj *abi.ABI, methodName string, args ...string) (string, []string, []interface{}, error) {
+// 	var (
+// 		realArgs   []interface{}
+// 		paramNames []string
+// 		logger     = utils.GetLogger("abiArgs")
+// 	)
 
-	methodNum := len(abiObj.Methods)
-	if methodNum == 0 {
-		return "", nil, nil, fmt.Errorf("no method found in abi")
-	}
+// 	methodNum := len(abiObj.Methods)
+// 	if methodNum == 0 {
+// 		return "", nil, nil, fmt.Errorf("no method found in abi")
+// 	}
 
-	var method *abi.Method
-	// 如果abi中只有一个method，那么忽略methodName
-	if methodNum == 1 {
-		for name, m := range abiObj.Methods {
-			if methodName != "" {
-				logger.Debug().Msgf("ignore method name")
-			}
-			logger.Debug().Msgf("use unique method: %v", name)
-			method = &m
-		}
-	} else {
-		if m, ok := abiObj.Methods[methodName]; ok {
-			method = &m
-		}
-	}
+// 	var method *abi.Method
+// 	// 如果abi中只有一个method，那么忽略methodName
+// 	if methodNum == 1 {
+// 		for name, m := range abiObj.Methods {
+// 			if methodName != "" {
+// 				logger.Debug().Msgf("ignore method name")
+// 			}
+// 			logger.Debug().Msgf("use unique method: %v", name)
+// 			method = &m
+// 		}
+// 	} else {
+// 		if m, ok := abiObj.Methods[methodName]; ok {
+// 			method = &m
+// 		}
+// 	}
 
-	if method == nil {
-		return "", nil, nil, fmt.Errorf("can not get abi method by name: %v", methodName)
-	}
+// 	if method == nil {
+// 		return "", nil, nil, fmt.Errorf("can not get abi method by name: %v", methodName)
+// 	}
 
-	if len(args) != len(method.Inputs) {
-		return "", nil, nil, fmt.Errorf("arg count not match abi input count")
-	}
+// 	if len(args) != len(method.Inputs) {
+// 		return "", nil, nil, fmt.Errorf("arg count not match abi input count")
+// 	}
 
-	for i, m := range method.Inputs {
-		arg := args[i]
+// 	for i, m := range method.Inputs {
+// 		arg := args[i]
 
-		v, err := parseAbiType(m.Type, arg)
-		if err != nil {
-			return "", nil, nil, err
-		}
-		logger.Debug().Msgf("input type: %v, input value: %v", m.Type.String(), arg)
+// 		v, err := parseAbiType(m.Type, arg)
+// 		if err != nil {
+// 			return "", nil, nil, err
+// 		}
+// 		logger.Debug().Msgf("input type: %v, input value: %v", m.Type.String(), arg)
 
-		realArgs = append(realArgs, v)
-		paramNames = append(paramNames, m.Type.String())
-	}
+// 		realArgs = append(realArgs, v)
+// 		paramNames = append(paramNames, m.Type.String())
+// 	}
 
-	return method.Name, paramNames, realArgs, nil
-}
+// 	return method.Name, paramNames, realArgs, nil
+// }
 
-type NameValue struct {
-	Name  string
-	Value string
-}
+// type NameValue struct {
+// 	Name  string
+// 	Value string
+// }
 
-func parseOutput(abiObj *abi.ABI, methodName string, results []any) ([]NameValue, error) {
-	methodNum := len(abiObj.Methods)
-	if methodNum == 0 {
-		return nil, fmt.Errorf("no method found in abi")
-	}
+// func parseOutput(abiObj *abi.ABI, methodName string, results []any) ([]NameValue, error) {
+// 	methodNum := len(abiObj.Methods)
+// 	if methodNum == 0 {
+// 		return nil, fmt.Errorf("no method found in abi")
+// 	}
 
-	var method *abi.Method
-	// 如果abi中只有一个method，那么忽略methodName
-	if methodNum == 1 {
-		for name, m := range abiObj.Methods {
-			if methodName != "" {
-				fmt.Printf("ignore method name\n")
-			}
-			fmt.Printf("use unique method: %v\n", name)
-			method = &m
-		}
-	} else {
-		if m, ok := abiObj.Methods[methodName]; ok {
-			method = &m
-		}
-	}
+// 	var method *abi.Method
+// 	// 如果abi中只有一个method，那么忽略methodName
+// 	if methodNum == 1 {
+// 		for name, m := range abiObj.Methods {
+// 			if methodName != "" {
+// 				fmt.Printf("ignore method name\n")
+// 			}
+// 			fmt.Printf("use unique method: %v\n", name)
+// 			method = &m
+// 		}
+// 	} else {
+// 		if m, ok := abiObj.Methods[methodName]; ok {
+// 			method = &m
+// 		}
+// 	}
 
-	if method == nil {
-		return nil, fmt.Errorf("can not get abi method by name: %v", methodName)
-	}
+// 	if method == nil {
+// 		return nil, fmt.Errorf("can not get abi method by name: %v", methodName)
+// 	}
 
-	if len(results) != len(method.Outputs) {
-		return nil, fmt.Errorf("result count not match abi output count")
-	}
+// 	if len(results) != len(method.Outputs) {
+// 		return nil, fmt.Errorf("result count not match abi output count")
+// 	}
 
-	var nameValues []NameValue
+// 	var nameValues []NameValue
 
-	for i, output := range method.Outputs {
-		result := results[i]
-		r, err := decodeOutput(output.Type, result)
-		if err != nil {
-			return nil, err
-		}
+// 	for i, output := range method.Outputs {
+// 		result := results[i]
+// 		r, err := decodeOutput(output.Type, result)
+// 		if err != nil {
+// 			return nil, err
+// 		}
 
-		nameValues = append(nameValues, NameValue{
-			Name:  output.Name,
-			Value: r,
-		})
+// 		nameValues = append(nameValues, NameValue{
+// 			Name:  output.Name,
+// 			Value: r,
+// 		})
 
-	}
+// 	}
 
-	return nameValues, nil
-}
+// 	return nameValues, nil
+// }
 
-func ReadContract(ctx context.Context, client *ethclient.Client, net *database.Network, contract, abiJson, methodName string, args ...string) ([]NameValue, error) {
+func ReadContract(ctx context.Context, client *ethclient.Client, net *database.Network, contract, abiJson, methodName string, args ...string) ([]transaction.NameValue, error) {
 	logger := utils.GetLogger("ReadContract")
 	logger.Debug().Msgf("abi: %v", abiJson)
 
 	logger.Info().Msg("parse abi")
-	abiObj, err := parseAbi(abiJson)
+	abiObj, err := transaction.ParseAbi(abiJson)
 	if err != nil {
 		return nil, fmt.Errorf("parse abi error: %w", err)
 	}
@@ -187,7 +186,7 @@ func ReadContract(ctx context.Context, client *ethclient.Client, net *database.N
 	logger.Info().Msgf("dial rpc: %v", net.Rpc)
 
 	logger.Info().Msg("prepare abi args")
-	methodName, _, realArgs, err := abiArgs(abiObj, methodName, args...)
+	methodName, _, realArgs, err := transaction.AbiArgs(abiObj, methodName, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -201,7 +200,7 @@ func ReadContract(ctx context.Context, client *ethclient.Client, net *database.N
 	}
 
 	logger.Debug().Msgf("raw results: %v", results)
-	outputs, err := parseOutput(abiObj, methodName, results)
+	outputs, err := transaction.ParseOutput(abiObj, methodName, results)
 	if err != nil {
 		return nil, err
 	}
@@ -248,12 +247,12 @@ func WriteContract(ctx context.Context, client *ethclient.Client, net *database.
 	}
 
 	logger.Info().Msgf("parse abi")
-	abiObj, err := parseAbi(abiJson)
+	abiObj, err := transaction.ParseAbi(abiJson)
 	if err != nil {
 		return fmt.Errorf("parse abi error: %w", err)
 	}
 
-	methodName, paramNames, realArgs, err := abiArgs(abiObj, methodName, args...)
+	methodName, paramNames, realArgs, err := transaction.AbiArgs(abiObj, methodName, args...)
 	if err != nil {
 		return err
 	}

@@ -8,13 +8,12 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
-	"github.com/spf13/cobra"
 )
 
 var Logger zerolog.Logger
 
-func SetLogger(cmd *cobra.Command) error {
-	loglevel, err := zerolog.ParseLevel(cmd.Flag("loglevel").Value.String())
+func SetLogger(level string) error {
+	loglevel, err := zerolog.ParseLevel(level)
 	if err != nil {
 		return fmt.Errorf("parse loglevel error: %w", err)
 	}
