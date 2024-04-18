@@ -173,7 +173,6 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 
 	utils.ShowReceipt(logger, receipt)
 
-	logger.Info().Msgf("tx hash1: %v hash2: %v", tx.Hash(), receipt.TxHash)
 	link := fmt.Sprintf("%v/tx/%v", net.Explorer, receipt.TxHash)
 	logger.Info().Msgf("tx link: %v", link)
 
