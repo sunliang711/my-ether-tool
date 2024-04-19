@@ -49,6 +49,8 @@ var (
 	feeCap   *string
 
 	noconfirm *bool
+
+	confirmations *int8
 )
 
 func init() {
@@ -82,6 +84,8 @@ func init() {
 	feeCap = sendCmd.Flags().String("feeCap", "", "feeCap(gwei)")
 
 	noconfirm = sendCmd.Flags().BoolP("noconfirm", "y", false, "do not need to confirm")
+
+	confirmations = sendCmd.Flags().Int8("confirmations", 0, "blocks of confirmation (N<0: send tx without receipt. 0: send tx with receipt. N>0: send tx with receipt and N blocks confirmations)")
 }
 
 func sendTransaction(cmd *cobra.Command, args []string) {
@@ -168,12 +172,14 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 	tx, err := transaction.BuildTx(ctx, client, from, *to, value, input, mode, *nonce, *chainID, *gasLimit, *gasLimitRatio, *gasRatio, *gasPrice, *tipCap, *feeCap, *all)
 	utils.ExitWhenErr(logger, err, "build tx error: %s", err)
 
-	receipt, err := transaction.SendTx(client, from, tx, privateKey, net, *noconfirm)
+	receipt, tx2, err := transaction.SendTx(client, from, tx, privateKey, net, *noconfirm, *confirmations)
 	utils.ExitWhenErr(logger, err, "send transaction error: %v", err)
 
-	utils.ShowReceipt(logger, receipt)
+	if receipt != nil {
+		utils.ShowReceipt(logger, receipt)
+	}
 
-	link := fmt.Sprintf("%v/tx/%v", net.Explorer, receipt.TxHash)
+	link := fmt.Sprintf("%v/tx/%v", net.Explorer, tx2.Hash())
 	logger.Info().Msgf("tx link: %v", link)
 
 }
