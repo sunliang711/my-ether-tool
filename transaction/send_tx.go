@@ -137,7 +137,6 @@ func waitTx(ctx context.Context, client *ethclient.Client, tx *types.Transaction
 				}
 			}
 
-			// block,err :=client.BlockByNumber(ctx,nil)
 			select {
 			case <-ctx2.Done():
 				logger.Warn().Msgf("context done before confirmations completed")
