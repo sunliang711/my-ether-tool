@@ -17,8 +17,8 @@ func WaitBlock(client *ethclient.Client, height string, heightInterval, heightTi
 		return nil
 	}
 
-	logger.Debug().Msgf("check block height interval: %v second", heightInterval)
-	logger.Debug().Msgf("check block height timeout: %v second", heightTimeout)
+	logger.Debug().Msgf("check block height interval: %v ms", heightInterval)
+	logger.Debug().Msgf("check block height timeout: %v s", heightTimeout)
 
 	blockHeight, ok := new(big.Int).SetString(height, 10)
 	if !ok {
@@ -29,7 +29,7 @@ func WaitBlock(client *ethclient.Client, height string, heightInterval, heightTi
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(heightTimeout))
 	defer cancel()
 
-	ticker := time.NewTicker(time.Second * time.Duration(heightInterval))
+	ticker := time.NewTicker(time.Millisecond * time.Duration(heightInterval))
 	defer ticker.Stop()
 
 OUTTER:

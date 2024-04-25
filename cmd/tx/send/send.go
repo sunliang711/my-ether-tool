@@ -92,8 +92,8 @@ func init() {
 	confirmations = sendCmd.Flags().Int8("confirmations", 0, "blocks of confirmation (N<0: send tx without receipt. 0: send tx with receipt. N>0: send tx with receipt and N blocks confirmations)")
 
 	blockHeight = sendCmd.Flags().String("height", "", "send tx after block height")
-	blockHeightInterval = sendCmd.Flags().Uint("heightInterval", 2, "check block height interval(unit: second)")
-	blockHeightTimeout = sendCmd.Flags().Uint("heightTimeout", 600, "check block height timeout(unit: second)")
+	blockHeightInterval = sendCmd.Flags().Uint("heightInterval", 2, "check block height interval(unit: ms)")
+	blockHeightTimeout = sendCmd.Flags().Uint("heightTimeout", 600, "check block height timeout(unit: s)")
 }
 
 func sendTransaction(cmd *cobra.Command, args []string) {
