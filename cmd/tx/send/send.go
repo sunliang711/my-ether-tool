@@ -51,6 +51,10 @@ var (
 	noconfirm *bool
 
 	confirmations *int8
+
+	blockHeight         *string
+	blockHeightInterval *uint
+	blockHeightTimeout  *uint
 )
 
 func init() {
@@ -86,11 +90,16 @@ func init() {
 	noconfirm = sendCmd.Flags().BoolP("noconfirm", "y", false, "do not need to confirm")
 
 	confirmations = sendCmd.Flags().Int8("confirmations", 0, "blocks of confirmation (N<0: send tx without receipt. 0: send tx with receipt. N>0: send tx with receipt and N blocks confirmations)")
+
+	blockHeight = sendCmd.Flags().String("height", "", "send tx after block height")
+	blockHeightInterval = sendCmd.Flags().Uint("heightInterval", 2, "check block height interval(unit: second)")
+	blockHeightTimeout = sendCmd.Flags().Uint("heightTimeout", 600, "check block height timeout(unit: second)")
 }
 
 func sendTransaction(cmd *cobra.Command, args []string) {
 	logger := utils.GetLogger("sendTransaction")
 
+	// account
 	account, err := database.QueryAccountOrCurrent(*account, *accountIndex)
 	utils.ExitWhenErr(logger, err, "load account error: %s", err)
 
@@ -106,6 +115,7 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 	from, err := details.Address()
 	utils.ExitWhenErr(logger, err, "get account address error: %s", err)
 
+	// network
 	net, err := database.QueryNetworkOrCurrent(*network)
 	utils.ExitWhenErr(logger, err, "load network error: %s", err)
 
@@ -116,11 +126,12 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 	utils.ExitWhenErr(logger, err, "dial rpc error: %v", err)
 	defer client.Close()
 
-	logger.Info().Msgf("Network Name: %s", net.Name)
-	logger.Info().Msgf("Network RPC: %s", net.Rpc)
+	// print
 	logger.Info().Msgf("Account Name: %s", details.Name)
 	logger.Info().Msgf("Account Index: %v", details.CurrentIndex)
 	logger.Info().Msgf("Address: %s", from)
+	logger.Info().Msgf("Network Name: %s", net.Name)
+	logger.Info().Msgf("Network RPC: %s", net.Rpc)
 
 	utils.ExitWhen(logger, *data != "" && (*abi != "" || len(*abiArgs) > 0), "--data conflicts with --abi and --args")
 	var input []byte
@@ -129,6 +140,7 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 		utils.ExitWhenErr(logger, err, "decode data: %v error: %v", *data, err)
 	}
 
+	// abi
 	if *abi != "" {
 		abiJson := *abi
 		// built-in abi
@@ -168,10 +180,18 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 	}
 
 	mode := ttypes.GasMode(ttypes.GasMode_value[*gasMode])
+
+	// wait block height
+	err = transaction.WaitBlock(client, *blockHeight, *blockHeightInterval, *blockHeightTimeout)
+	utils.ExitWhenErr(logger, err, "WaitBlock error: %v", err)
+
+	ctx2, cancel2 := utils.DefaultTimeoutContext()
+	defer cancel2()
 	// build tx
-	tx, err := transaction.BuildTx(ctx, client, from, *to, value, input, mode, *nonce, *chainID, *gasLimit, *gasLimitRatio, *gasRatio, *gasPrice, *tipCap, *feeCap, *all)
+	tx, err := transaction.BuildTx(ctx2, client, from, *to, value, input, mode, *nonce, *chainID, *gasLimit, *gasLimitRatio, *gasRatio, *gasPrice, *tipCap, *feeCap, *all)
 	utils.ExitWhenErr(logger, err, "build tx error: %s", err)
 
+	// send tx
 	receipt, tx2, err := transaction.SendTx(client, from, tx, privateKey, net, *noconfirm, *confirmations)
 	utils.ExitWhenErr(logger, err, "send transaction error: %v", err)
 
