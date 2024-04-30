@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"met/cmd/tx"
-	"met/consts"
 	database "met/database"
 	transaction "met/transaction"
 	ttypes "met/types"
@@ -140,44 +139,47 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 		utils.ExitWhenErr(logger, err, "decode data: %v error: %v", *data, err)
 	}
 
-	// abi
-	if *abi != "" {
-		abiJson := *abi
-		// built-in abi
-		switch *abi {
-		case consts.Erc20:
-			logger.Debug().Msgf("use built-in %v abi", *abi)
-			abiJson = consts.Erc20Abi
-		case consts.Erc721:
-			logger.Debug().Msgf("use built-in %v abi", *abi)
-			abiJson = consts.Erc721Abi
-		case consts.Erc1155:
-			logger.Debug().Msgf("use built-in %v abi", *abi)
-			abiJson = consts.Erc1155Abi
-		default:
-			logger.Debug().Msgf("use custom abi")
-		}
-		abiObj, err := transaction.ParseAbi(abiJson)
-		utils.ExitWhenErr(logger, err, "parse abi error: %v", err)
+	// // abi
+	// if *abi != "" {
+	// 	abiJson := *abi
+	// 	// built-in abi
+	// 	switch *abi {
+	// 	case consts.Erc20:
+	// 		logger.Debug().Msgf("use built-in %v abi", *abi)
+	// 		abiJson = consts.Erc20Abi
+	// 	case consts.Erc721:
+	// 		logger.Debug().Msgf("use built-in %v abi", *abi)
+	// 		abiJson = consts.Erc721Abi
+	// 	case consts.Erc1155:
+	// 		logger.Debug().Msgf("use built-in %v abi", *abi)
+	// 		abiJson = consts.Erc1155Abi
+	// 	default:
+	// 		logger.Debug().Msgf("use custom abi")
+	// 	}
+	// 	abiObj, err := transaction.ParseAbiJson(abiJson)
+	// 	utils.ExitWhenErr(logger, err, "parse abi error: %v", err)
 
-		logger.Debug().Msgf("method: %v", *method)
-		logger.Debug().Msgf("args: %v", *abiArgs)
+	// 	logger.Debug().Msgf("method: %v", *method)
+	// 	logger.Debug().Msgf("args: %v", *abiArgs)
 
-		methodName, paramNames, realArgs, err := transaction.AbiArgs(abiObj, *method, *abiArgs...)
-		utils.ExitWhenErr(logger, err, "AbiArgs error: %v", err)
+	// 	methodName, paramNames, realArgs, err := transaction.AbiArgs(abiObj, *method, *abiArgs...)
+	// 	utils.ExitWhenErr(logger, err, "AbiArgs error: %v", err)
 
-		paramsStr := strings.Join(paramNames, ",")
-		functionSignature := fmt.Sprintf("%s(%s)", methodName, paramsStr)
-		logger.Info().Msgf("function signature: %v", functionSignature)
-		if len(*abiArgs) != 0 {
-			logger.Info().Msgf("abi args: %s", *abiArgs)
-		}
+	// 	paramsStr := strings.Join(paramNames, ",")
+	// 	functionSignature := fmt.Sprintf("%s(%s)", methodName, paramsStr)
+	// 	logger.Info().Msgf("function signature: %v", functionSignature)
+	// 	if len(*abiArgs) != 0 {
+	// 		logger.Info().Msgf("abi args: %s", *abiArgs)
+	// 	}
 
-		input, err = abiObj.Pack(methodName, realArgs...)
-		utils.ExitWhenErr(logger, err, "abi pack error: %v", err)
+	// 	input, err = abiObj.Pack(methodName, realArgs...)
+	// 	utils.ExitWhenErr(logger, err, "abi pack error: %v", err)
 
-		logger.Trace().Msgf("abi: %s", abiJson)
-	}
+	// 	logger.Trace().Msgf("abi: %s", abiJson)
+	// }
+
+	input, err = transaction.ParseAbi(*abi, *method, *abiArgs...)
+	utils.ExitWhenErr(logger, err, "parse abi error: %v", err)
 
 	mode := ttypes.GasMode(ttypes.GasMode_value[*gasMode])
 

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"met/consts"
 	utils "met/utils"
 	"regexp"
 	"strings"
@@ -247,7 +248,56 @@ func AbiDecode(abiStr string, encoded string) {
 
 }
 
-func ParseAbi(abiJson string) (*abi.ABI, error) {
+func ParseAbi(abiJson string, method string, abiArgs ...string) ([]byte, error) {
+	logger := utils.GetLogger("ParseAbi")
+	if abiJson == "" {
+		return nil, nil
+	}
+	// built-in abi
+	switch abiJson {
+	case consts.Erc20:
+		logger.Debug().Msgf("use built-in %v abi", abiJson)
+		abiJson = consts.Erc20Abi
+	case consts.Erc721:
+		logger.Debug().Msgf("use built-in %v abi", abiJson)
+		abiJson = consts.Erc721Abi
+	case consts.Erc1155:
+		logger.Debug().Msgf("use built-in %v abi", abiJson)
+		abiJson = consts.Erc1155Abi
+	default:
+		logger.Debug().Msgf("use custom abi")
+	}
+	abiObj, err := ParseAbiJson(abiJson)
+	if err != nil {
+		return nil, fmt.Errorf("parse abi error: %w", err)
+	}
+
+	logger.Debug().Msgf("method: %v", method)
+	logger.Debug().Msgf("args: %v", abiArgs)
+
+	methodName, paramNames, realArgs, err := AbiArgs(abiObj, method, abiArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("AbiArgs error: %w", err)
+	}
+
+	paramsStr := strings.Join(paramNames, ",")
+	functionSignature := fmt.Sprintf("%s(%s)", methodName, paramsStr)
+	logger.Info().Msgf("function signature: %v", functionSignature)
+	if len(abiArgs) != 0 {
+		logger.Info().Msgf("abi args: %s", abiArgs)
+	}
+
+	data, err := abiObj.Pack(methodName, realArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("abi pack error: %w", err)
+	}
+
+	logger.Trace().Msgf("abi: %s", abiJson)
+
+	return data, nil
+}
+
+func ParseAbiJson(abiJson string) (*abi.ABI, error) {
 	abiObj, err := abi.JSON(strings.NewReader(abiJson))
 	if err != nil {
 		return nil, err

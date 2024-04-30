@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
+// 等待指定的区块高度到来
 func WaitBlock(client *ethclient.Client, height string, heightInterval, heightTimeout uint) error {
 	logger := utils.GetLogger("WaitBlock")
 	if height == "" {
@@ -26,9 +27,11 @@ func WaitBlock(client *ethclient.Client, height string, heightInterval, heightTi
 		return fmt.Errorf(msg)
 	}
 
+	// 超时时间设置，单位秒
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(heightTimeout))
 	defer cancel()
 
+	// 定时器间隔设置，单位毫秒
 	ticker := time.NewTicker(time.Millisecond * time.Duration(heightInterval))
 	defer ticker.Stop()
 

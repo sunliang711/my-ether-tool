@@ -172,7 +172,7 @@ func ReadContract(ctx context.Context, client *ethclient.Client, net *database.N
 	logger.Debug().Msgf("abi: %v", abiJson)
 
 	logger.Info().Msg("parse abi")
-	abiObj, err := transaction.ParseAbi(abiJson)
+	abiObj, err := transaction.ParseAbiJson(abiJson)
 	if err != nil {
 		return nil, fmt.Errorf("parse abi error: %w", err)
 	}
@@ -247,7 +247,7 @@ func WriteContract(ctx context.Context, client *ethclient.Client, net *database.
 	}
 
 	logger.Info().Msgf("parse abi")
-	abiObj, err := transaction.ParseAbi(abiJson)
+	abiObj, err := transaction.ParseAbiJson(abiJson)
 	if err != nil {
 		return fmt.Errorf("parse abi error: %w", err)
 	}
