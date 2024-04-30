@@ -36,6 +36,6 @@ jobs:
           prerelease: false
           # Path to the file(s) to attach to the release
           files: |
-            met  # Modify with the correct path to your built binary
+            met
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # GitHub-provided token for authentication
