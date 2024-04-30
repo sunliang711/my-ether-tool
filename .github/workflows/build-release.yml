@@ -28,7 +28,7 @@ jobs:
       # Step 3: Build the binary
       - name: Build the project
         run: |
-          env GOOS=${{matrix.os}} GOARCH=${{matrix.arch}} go build -o met-${{matrix.os}}-${{matrix.arch}}
+          env CGO_ENABLED=1 GOOS=${{matrix.os}} GOARCH=${{matrix.arch}} go build -o met-${{matrix.os}}-${{matrix.arch}}
           ls
           
       # Step 4: Create a GitHub release and attach the built binary
