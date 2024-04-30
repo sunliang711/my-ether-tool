@@ -1,0 +1,43 @@
+name: Build and Release Binary
+# Trigger the workflow when a new tag is pushed to the repository
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build_and_release:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '^1.20' 
+      
+      # Step 3: Build the binary
+      - name: Build the project
+        run: |
+          go mod tidy
+          go build -o met main.go
+          
+      # Step 4: Create a GitHub release and attach the built binary
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          # Release tag is obtained from the Git push event
+          tag_name: ${{ github.ref_name }}
+          # Optional: Customize the release name and description
+          release_name: Release ${{ github.ref_name }}
+          body: 'Release created from GitHub Actions workflow'
+          # Optional: Mark it as a draft or a pre-release
+          draft: false
+          prerelease: false
+          # Path to the file(s) to attach to the release
+          files: |
+            met  # Modify with the correct path to your built binary
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # GitHub-provided token for authentication
