@@ -21,7 +21,7 @@ jobs:
       # Step 3: Build the binary
       - name: Build the project
         run: |
-          go build main.go
+          go build -o met main.go
           ls
           
       # Step 4: Create a GitHub release and attach the built binary
