@@ -1,9 +1,10 @@
 name: Build and Release Binary
 # Trigger the workflow when a new tag is pushed to the repository
-on:
-  push:
-    tags:
-      - 'v*'
+# on:
+#   push:
+#     tags:
+#       - 'v*'
+on: [push]
 
 jobs:
   build_and_release:
@@ -36,8 +37,8 @@ jobs:
           # Optional: Mark it as a draft or a pre-release
           draft: false
           prerelease: false
-          permissions:
-            contents: write
+        permissions:
+          contents: write
           # Path to the file(s) to attach to the release
           files: |
             met
