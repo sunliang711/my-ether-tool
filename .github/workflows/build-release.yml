@@ -9,6 +9,10 @@ on: [push]
 jobs:
   build_and_release:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [linux,windows,darwin]
+        arch: [amd64]
     permissions:
       contents: write
 
@@ -24,7 +28,7 @@ jobs:
       # Step 3: Build the binary
       - name: Build the project
         run: |
-          go build -o met main.go
+          env GOOS=${{matrix.os}} GOARCH=${{matrix.arch}} go build -o met-${{matrix.os}}-${{matrix.arch}}
           ls
           
       # Step 4: Create a GitHub release and attach the built binary
@@ -41,6 +45,6 @@ jobs:
           prerelease: false
           # Path to the file(s) to attach to the release
           files: |
-            met
+            met-*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # GitHub-provided token for authentication
