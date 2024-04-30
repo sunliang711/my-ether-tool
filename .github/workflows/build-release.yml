@@ -9,6 +9,8 @@ on: [push]
 jobs:
   build_and_release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       # Step 1: Check out the repository
@@ -37,8 +39,6 @@ jobs:
           # Optional: Mark it as a draft or a pre-release
           draft: false
           prerelease: false
-        permissions:
-          contents: write
           # Path to the file(s) to attach to the release
           files: |
             met
