@@ -48,4 +48,14 @@ eip712
  ### offsign
  go run main.go tx offsign --rpc  https://rpc.ankr.com/fantom_testnet --from 0xba536E7ce173802053435bF03d1D528f3Ff29C32 --to 0x41cbC063B4b3264F5a075012e685B9fA05e41a44 --data 0xa9059cbb0000000000000000000000009d757dd679be17b4094c740fb0047fa3a7ed6df000000000000000000000000000000000000000000000000000000000000f4240
 
-go run main.go tx offsign --rpc  https://rpc.ankr.com/fantom_testnet --from 0xba536E7ce173802053435bF03d1D528f3Ff29C32 --to 0x41cbC063B4b3264F5a075012e685B9fA05e41a44 --abi "transfer(address,uint256)" --args 0x9D757Dd679bE17b4094c740fB0047fa3a7Ed6DF0 --args 100000 
+go run main.go tx offsign --rpc  https://rpc.ankr.com/fantom_testnet --from 0xba536E7ce173802053435bF03d1D528f3Ff29C32 --to 0x41cbC063B4b3264F5a075012e685B9fA05e41a44 --abi "transfer(address,uint256)" --args 0x9D757Dd679bE17b4094c740fB0047fa3a7Ed6DF0 --args 100000
+
+### Usage
+## 发送交易
+### 基本用法
+met tx send --to <> --value <> --data <> --network <> < --account <> | --ledger > [-v]
+
+### 调用合约
+met tx send --to <contractAddress> --abi <abi string>|<built-in abi: erc20,erc721,erc1155> --method <methodName> --args <arg1> ... --args <argN> --network <> < --account <> | --ledger > [-v]
+
+因为abi会很长，所以可以将abi保存到文件中，然后通过--abi "$(cat abiFile)" 来传递abi

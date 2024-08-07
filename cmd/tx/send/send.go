@@ -1,15 +1,18 @@
 package tx
 
 import (
+	"crypto/ecdsa"
 	"encoding/hex"
 	"fmt"
 	"met/cmd/tx"
+	"met/consts"
 	database "met/database"
 	transaction "met/transaction"
 	ttypes "met/types"
 	utils "met/utils"
 	"strings"
 
+	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/spf13/cobra"
 )
@@ -54,6 +57,9 @@ var (
 	blockHeight         *string
 	blockHeightInterval *uint
 	blockHeightTimeout  *uint
+
+	ledger           *bool
+	ledgerDerivePath *string
 )
 
 func init() {
@@ -70,7 +76,7 @@ func init() {
 
 	// data or abi + args
 	data = sendCmd.Flags().String("data", "", "data of transaction, conflict with --abi")
-	abi = sendCmd.Flags().String("abi", "", "abi JSON string, conflict with --data")
+	abi = sendCmd.Flags().String("abi", "", "abi JSON string, conflict with --data, available builtin abi: erc20 erc721 erc1155")
 	method = sendCmd.Flags().String("method", "", "methodName, conflict with --data")
 	abiArgs = sendCmd.Flags().StringArray("args", nil, "arguments of abi( --args 0x... --args 200)")
 
@@ -93,26 +99,56 @@ func init() {
 	blockHeight = sendCmd.Flags().String("height", "", "send tx after block height")
 	blockHeightInterval = sendCmd.Flags().Uint("heightInterval", 2, "check block height interval(unit: ms)")
 	blockHeightTimeout = sendCmd.Flags().Uint("heightTimeout", 600, "check block height timeout(unit: s)")
+
+	ledger = sendCmd.Flags().Bool("ledger", false, "use ledger to sign tx")
+	ledgerDerivePath = sendCmd.Flags().String("ledgerDerivePath", "m/44'/60'/0'/0/0", "ledger derive path")
 }
 
 func sendTransaction(cmd *cobra.Command, args []string) {
 	logger := utils.GetLogger("sendTransaction")
 
-	// account
-	account, err := database.QueryAccountOrCurrent(*account, *accountIndex)
-	utils.ExitWhenErr(logger, err, "load account error: %s", err)
+	var (
+		err          error
+		privateKey   *ecdsa.PrivateKey
+		from         string
+		accountName  string
+		accoutnIndex uint
 
-	details, err := ttypes.AccountToDetails(account)
-	utils.ExitWhenErr(logger, err, "calculate address error: %s", err)
+		ledgerWallet  accounts.Wallet
+		ledgerAccount *accounts.Account
+	)
 
-	privateKeyStr, err := details.PrivateKey()
-	utils.ExitWhenErr(logger, err, "get account private key error: %s", err)
+	walletType := consts.WalletTypeNormal
+	if *ledger {
+		walletType = consts.WalletTypeLedger
 
-	privateKey, err := crypto.HexToECDSA(strings.TrimPrefix(privateKeyStr, "0x"))
-	utils.ExitWhenErr(logger, err, "parse privateKey error: %s", err)
+		ledgerWallet, ledgerAccount, err = utils.ConnectLedger(*ledgerDerivePath)
+		utils.ExitWhenErr(logger, err, "connect ledger error: %s", err)
+		defer ledgerWallet.Close()
 
-	from, err := details.Address()
-	utils.ExitWhenErr(logger, err, "get account address error: %s", err)
+		accountName = "ledger"
+		from = ledgerAccount.Address.Hex()
+
+	} else {
+		// account
+		account, err := database.QueryAccountOrCurrent(*account, *accountIndex)
+		utils.ExitWhenErr(logger, err, "load account error: %s", err)
+
+		details, err := ttypes.AccountToDetails(account)
+		utils.ExitWhenErr(logger, err, "calculate address error: %s", err)
+
+		privateKeyStr, err := details.PrivateKey()
+		utils.ExitWhenErr(logger, err, "get account private key error: %s", err)
+
+		privateKey, err = crypto.HexToECDSA(strings.TrimPrefix(privateKeyStr, "0x"))
+		utils.ExitWhenErr(logger, err, "parse privateKey error: %s", err)
+
+		from, err = details.Address()
+		utils.ExitWhenErr(logger, err, "get account address error: %s", err)
+
+		accountName = details.Name
+		accoutnIndex = details.CurrentIndex
+	}
 
 	// network
 	net, err := database.QueryNetworkOrCurrent(*network)
@@ -126,8 +162,8 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 	defer client.Close()
 
 	// print
-	logger.Info().Msgf("Account Name: %s", details.Name)
-	logger.Info().Msgf("Account Index: %v", details.CurrentIndex)
+	logger.Info().Msgf("Account Name: %s", accountName)
+	logger.Info().Msgf("Account Index: %v", accoutnIndex)
 	logger.Info().Msgf("Address: %s", from)
 	logger.Info().Msgf("Network Name: %s", net.Name)
 	logger.Info().Msgf("Network RPC: %s", net.Rpc)
@@ -138,45 +174,6 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 		input, err = hex.DecodeString(*data)
 		utils.ExitWhenErr(logger, err, "decode data: %v error: %v", *data, err)
 	}
-
-	// // abi
-	// if *abi != "" {
-	// 	abiJson := *abi
-	// 	// built-in abi
-	// 	switch *abi {
-	// 	case consts.Erc20:
-	// 		logger.Debug().Msgf("use built-in %v abi", *abi)
-	// 		abiJson = consts.Erc20Abi
-	// 	case consts.Erc721:
-	// 		logger.Debug().Msgf("use built-in %v abi", *abi)
-	// 		abiJson = consts.Erc721Abi
-	// 	case consts.Erc1155:
-	// 		logger.Debug().Msgf("use built-in %v abi", *abi)
-	// 		abiJson = consts.Erc1155Abi
-	// 	default:
-	// 		logger.Debug().Msgf("use custom abi")
-	// 	}
-	// 	abiObj, err := transaction.ParseAbiJson(abiJson)
-	// 	utils.ExitWhenErr(logger, err, "parse abi error: %v", err)
-
-	// 	logger.Debug().Msgf("method: %v", *method)
-	// 	logger.Debug().Msgf("args: %v", *abiArgs)
-
-	// 	methodName, paramNames, realArgs, err := transaction.AbiArgs(abiObj, *method, *abiArgs...)
-	// 	utils.ExitWhenErr(logger, err, "AbiArgs error: %v", err)
-
-	// 	paramsStr := strings.Join(paramNames, ",")
-	// 	functionSignature := fmt.Sprintf("%s(%s)", methodName, paramsStr)
-	// 	logger.Info().Msgf("function signature: %v", functionSignature)
-	// 	if len(*abiArgs) != 0 {
-	// 		logger.Info().Msgf("abi args: %s", *abiArgs)
-	// 	}
-
-	// 	input, err = abiObj.Pack(methodName, realArgs...)
-	// 	utils.ExitWhenErr(logger, err, "abi pack error: %v", err)
-
-	// 	logger.Trace().Msgf("abi: %s", abiJson)
-	// }
 
 	input, err = transaction.ParseAbi(*abi, *method, *abiArgs...)
 	utils.ExitWhenErr(logger, err, "parse abi error: %v", err)
@@ -190,11 +187,11 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 	ctx2, cancel2 := utils.DefaultTimeoutContext()
 	defer cancel2()
 	// build tx
-	tx, err := transaction.BuildTx(ctx2, client, from, *to, value, input, mode, *nonce, *chainID, *gasLimit, *gasLimitRatio, *gasRatio, *gasPrice, *tipCap, *feeCap, *all)
+	tx, err := transaction.BuildTx(ctx2, client, from, *to, value, input, *ledger, mode, *nonce, *chainID, *gasLimit, *gasLimitRatio, *gasRatio, *gasPrice, *tipCap, *feeCap, *all)
 	utils.ExitWhenErr(logger, err, "build tx error: %s", err)
 
 	// send tx
-	receipt, tx2, err := transaction.SendTx(client, from, tx, privateKey, net, *noconfirm, *confirmations)
+	receipt, tx2, err := transaction.SendTx(client, from, tx, walletType, ledgerWallet, ledgerAccount, privateKey, net, *noconfirm, *confirmations)
 	utils.ExitWhenErr(logger, err, "send transaction error: %v", err)
 
 	if receipt != nil {

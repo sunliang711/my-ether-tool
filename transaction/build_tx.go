@@ -19,7 +19,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-func BuildTx(ctx context.Context, client *ethclient.Client, from string, to string, value *string, data []byte, gasMode mTypes.GasMode, nonce, chainId, gasLimit, gasLimitRatio, gasRatio, gasPrice, gasTipCap, gasFeeCap string, sendAll bool) (tx *types.Transaction, err error) {
+func BuildTx(ctx context.Context, client *ethclient.Client, from string, to string, value *string, data []byte, ledger bool, gasMode mTypes.GasMode, nonce, chainId, gasLimit, gasLimitRatio, gasRatio, gasPrice, gasTipCap, gasFeeCap string, sendAll bool) (tx *types.Transaction, err error) {
 	var (
 		nonce0     uint64
 		gasLimit0  uint64
@@ -151,6 +151,11 @@ func BuildTx(ctx context.Context, client *ethclient.Client, from string, to stri
 		newGasLimit := decimal.NewFromInt(int64(gasLimit0)).Mul(gasLimitRatio0).IntPart()
 		gasLimit0 = uint64(newGasLimit)
 		logger.Debug().Msgf("after scale, gasLimit: %v", gasLimit0)
+	}
+
+	// ledger 只支持 legacy gas mode
+	if ledger {
+		gasMode = mTypes.GasModeLegacy
 	}
 
 	// gas
@@ -301,28 +306,40 @@ func BuildTx(ctx context.Context, client *ethclient.Client, from string, to stri
 		logger.Debug().Msgf("after gasRatio, gasTipCap: %v", gasTipCap0.String())
 	}
 
-	if gasMode == mTypes.GasModeLegacy {
-		tx = types.NewTx(&types.AccessListTx{
-			ChainID:    chainId0,
-			Nonce:      nonce0,
-			GasPrice:   gasPrice0,
-			Gas:        gasLimit0,
-			To:         &toAddress,
-			Value:      value0,
-			Data:       data,
-			AccessList: []types.AccessTuple{},
+	// ledger 只支持 legacy tx
+	if ledger {
+		tx = types.NewTx(&types.LegacyTx{
+			Nonce:    nonce0,
+			GasPrice: gasPrice0,
+			Gas:      gasLimit0,
+			To:       &toAddress,
+			Value:    value0,
+			Data:     data,
 		})
-	} else if gasMode == mTypes.GasModeEip1559 {
-		tx = types.NewTx(&types.DynamicFeeTx{
-			ChainID:   chainId0,
-			Nonce:     nonce0,
-			GasTipCap: gasTipCap0,
-			GasFeeCap: gasFeeCap0,
-			Gas:       gasLimit0,
-			To:        &toAddress,
-			Value:     value0,
-			Data:      data,
-		})
+	} else {
+		if gasMode == mTypes.GasModeLegacy {
+			tx = types.NewTx(&types.AccessListTx{
+				ChainID:    chainId0,
+				Nonce:      nonce0,
+				GasPrice:   gasPrice0,
+				Gas:        gasLimit0,
+				To:         &toAddress,
+				Value:      value0,
+				Data:       data,
+				AccessList: []types.AccessTuple{},
+			})
+		} else if gasMode == mTypes.GasModeEip1559 {
+			tx = types.NewTx(&types.DynamicFeeTx{
+				ChainID:   chainId0,
+				Nonce:     nonce0,
+				GasTipCap: gasTipCap0,
+				GasFeeCap: gasFeeCap0,
+				Gas:       gasLimit0,
+				To:        &toAddress,
+				Value:     value0,
+				Data:      data,
+			})
+		}
 	}
 
 	return
