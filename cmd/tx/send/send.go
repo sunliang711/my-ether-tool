@@ -74,9 +74,9 @@ func init() {
 	value = sendCmd.Flags().String("value", "0", "value (uint: eth)")
 	all = sendCmd.Flags().Bool("all", false, "send all ether")
 
-	// data or abi + args
+	// data or abi + method + args
 	data = sendCmd.Flags().String("data", "", "data of transaction, conflict with --abi")
-	abi = sendCmd.Flags().String("abi", "", "abi JSON string, conflict with --data, available builtin abi: erc20 erc721 erc1155")
+	abi = sendCmd.Flags().String("abi", "", "abi JSON string, conflict with --data, available built-in abi: erc20 erc721 erc1155")
 	method = sendCmd.Flags().String("method", "", "methodName, conflict with --data")
 	abiArgs = sendCmd.Flags().StringArray("args", nil, "arguments of abi( --args 0x... --args 200)")
 
