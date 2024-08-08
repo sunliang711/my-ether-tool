@@ -166,7 +166,6 @@ Amount:                %s
 		return nil, fmt.Errorf("unsupported erc20 method: %s", method)
 	}
 
-	return nil, nil
 }
 
 // getErc20SymbolAndDecimals 获取erc20代币的symbol和decimals, 如果symbol或decimals为空，则通过rpc查询
