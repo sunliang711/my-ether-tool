@@ -59,3 +59,8 @@ met tx send --to <> --value <> --data <> --network <> < --account <> | --ledger 
 met tx send --to <contractAddress> --abi <abi string>|<built-in abi: erc20,erc721,erc1155> --method <methodName> --args <arg1> ... --args <argN> --network <> < --account <> | --ledger > [-v]
 
 因为abi会很长，所以可以将abi保存到文件中，然后通过--abi "$(cat abiFile)" 来传递abi
+
+### erc20
+met erc20 transferFrom --contract <> --from <> --to <> --amount <> --network <> < --account <> | --ledger > [-v]
+met erc20 transfer --contract <> --to <> --amount <> --network <> < --account <> | --ledger > [-v]
+met erc20 approve --contract <> --spender <> --amount <> --network <> < --account <> | --ledger > [-v]
