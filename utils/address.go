@@ -26,6 +26,15 @@ Gas Price:           %v
 Status:              %v
 Tx Index:            %v
 Type:                %v
-`, receipt.TxHash, receipt.BlockNumber, receipt.BlockHash, receipt.ContractAddress, receipt.GasUsed, receipt.EffectiveGasPrice, receipt.Status, receipt.TransactionIndex, receipt.Type)
+`,
+		receipt.TxHash,
+		receipt.BlockNumber,
+		receipt.BlockHash,
+		receipt.ContractAddress,
+		receipt.GasUsed,
+		receipt.EffectiveGasPrice,
+		receipt.Status,
+		receipt.TransactionIndex,
+		receipt.Type)
 	logger.Info().Msg(receiptInfo)
 }

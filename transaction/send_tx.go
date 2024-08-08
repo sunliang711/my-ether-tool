@@ -89,7 +89,18 @@ GasLimit:            %v
 GasPrice:            %s (%s Gwei)
 GasTipCap:           %s (%s Gwei)
 GasFeeCap:           %s (%s Gwei)
-`, from, to, tx.Value().String(), value, net.Symbol, hex.EncodeToString(tx.Data()), tx.Nonce(), tx.ChainId().String(), tx.Gas(), tx.GasPrice().String(), gasPrice, tx.GasTipCap().String(), tipCap, tx.GasFeeCap().String(), feeCap)
+`,
+		from,
+		to,
+		tx.Value().String(), value, net.Symbol,
+		hex.EncodeToString(tx.Data()),
+		tx.Nonce(),
+		tx.ChainId().String(),
+		tx.Gas(),
+		tx.GasPrice().String(), gasPrice,
+		tx.GasTipCap().String(), tipCap,
+		tx.GasFeeCap().String(), feeCap)
+
 	logger.Info().Msgf(txInfo)
 
 	if !noconfirm {
