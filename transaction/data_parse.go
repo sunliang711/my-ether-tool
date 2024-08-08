@@ -40,7 +40,7 @@ func ParseInput(data string, abi string, method string, abiArgs ...string) ([]by
 // 2. decimals: 代币精度,如果为空，则通过rpc查询;如果为了快速构造input，可以传入
 // 3. method: erc20方法
 // 4. abiArgs: erc20方法参数,如果是amount类的参数，其类型为人类可读的数字，需要转换为区块链底层数字
-func ParseErc20Input(client *ethclient.Client, contractAddress string, symbol string, decimals string, method string, abiArgs ...string) ([]byte, error) {
+func ParseErc20Input(client *ethclient.Client, contractAddress, sender, symbol, decimals, method string, abiArgs ...string) ([]byte, error) {
 	logger := utils.GetLogger("ParseErc20Input")
 
 	switch method {
@@ -69,11 +69,13 @@ func ParseErc20Input(client *ethclient.Client, contractAddress string, symbol st
 		transferInfo := fmt.Sprintf(`
 Erc20 Transfer Info:
 Contract Address:      %s
+From:                  %s
 To:                    %s
 Symbol:                %s
 Amount:                %s
 `,
 			contractAddress,
+			sender,
 			to,
 			symbol,
 			humanAmount)
@@ -85,11 +87,80 @@ Amount:                %s
 		if len(abiArgs) != 2 {
 			return nil, fmt.Errorf("erc20 approve method need 2 args")
 		}
+		spender := abiArgs[0]
+		humanAmount := abiArgs[1]
+		symbol, decimals, err := getErc20SymbolAndDecimals(client, contractAddress, symbol, decimals)
+		if err != nil {
+			return nil, fmt.Errorf("getErc20SymbolAndDecimals error: %v", err)
+		}
+
+		// 转换amount
+		amount, err := utils.Erc20AmountFromHuman(humanAmount, decimals)
+		if err != nil {
+			return nil, fmt.Errorf("erc20 amount from human amount: %v error: %v", humanAmount, err)
+		}
+
+		input, err := ParseInput("", consts.Erc20, method, spender, amount)
+		if err != nil {
+			return nil, fmt.Errorf("parse input error: %v", err)
+		}
+
+		approveInfo := fmt.Sprintf(`
+Erc20 Approve Info:
+Contract Address:      %s
+Spender:               %s
+Symbol:                %s
+Amount:                %s
+`,
+			contractAddress,
+			spender,
+			symbol,
+			humanAmount)
+		logger.Info().Msgf(approveInfo)
+
+		return input, nil
 
 	case consts.Erc20TransferFrom:
 		if len(abiArgs) != 3 {
 			return nil, fmt.Errorf("erc20 transferFrom method need 3 args")
 		}
+		owner := abiArgs[0]
+		to := abiArgs[1]
+		humanAmount := abiArgs[2]
+		symbol, decimals, err := getErc20SymbolAndDecimals(client, contractAddress, symbol, decimals)
+		if err != nil {
+			return nil, fmt.Errorf("getErc20SymbolAndDecimals error: %v", err)
+		}
+
+		// 转换amount
+		amount, err := utils.Erc20AmountFromHuman(humanAmount, decimals)
+		if err != nil {
+			return nil, fmt.Errorf("erc20 amount from human amount: %v error: %v", humanAmount, err)
+		}
+
+		input, err := ParseInput("", consts.Erc20, method, owner, to, amount)
+		if err != nil {
+			return nil, fmt.Errorf("parse input error: %v", err)
+		}
+
+		transferFromInfo := fmt.Sprintf(`
+Erc20 transferFrom Info:
+Contract Address:      %s
+Spender:               %s
+From:                  %s
+To:                    %s
+Symbol:                %s
+Amount:                %s
+`,
+			contractAddress,
+			sender,
+			owner,
+			to,
+			symbol,
+			humanAmount)
+		logger.Info().Msgf(transferFromInfo)
+
+		return input, nil
 
 	default:
 		return nil, fmt.Errorf("unsupported erc20 method: %s", method)

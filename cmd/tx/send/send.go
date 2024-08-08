@@ -107,7 +107,7 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 	var (
 		err          error
 		privateKey   *ecdsa.PrivateKey
-		from         string
+		sender       string
 		accountName  string
 		accoutnIndex uint
 
@@ -122,7 +122,7 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 		defer ledgerWallet.Close()
 
 		accountName = "ledger"
-		from = ledgerAccount.Address.Hex()
+		sender = ledgerAccount.Address.Hex()
 
 	} else {
 		// 使用普通账户时
@@ -138,7 +138,7 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 		privateKey, err = crypto.HexToECDSA(strings.TrimPrefix(privateKeyStr, "0x"))
 		utils.ExitWhenErr(logger, err, "parse privateKey error: %s", err)
 
-		from, err = details.Address()
+		sender, err = details.Address()
 		utils.ExitWhenErr(logger, err, "get account address error: %s", err)
 
 		accountName = details.Name
@@ -159,7 +159,7 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 	// print
 	logger.Info().Msgf("Account Name: %s", accountName)
 	logger.Info().Msgf("Account Index: %v", accoutnIndex)
-	logger.Info().Msgf("Address: %s", from)
+	logger.Info().Msgf("Address: %s", sender)
 	logger.Info().Msgf("Network Name: %s", net.Name)
 	logger.Info().Msgf("Network RPC: %s", net.Rpc)
 
@@ -175,11 +175,11 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 	utils.ExitWhenErr(logger, err, "WaitBlock error: %v", err)
 
 	// build tx
-	tx, err := transaction.BuildTx(client, from, *to, value, input, *ledger, mode, *nonce, *chainID, *gasLimit, *gasLimitRatio, *gasRatio, *gasPrice, *tipCap, *feeCap, *all)
+	tx, err := transaction.BuildTx(client, sender, *to, value, input, *ledger, mode, *nonce, *chainID, *gasLimit, *gasLimitRatio, *gasRatio, *gasPrice, *tipCap, *feeCap, *all)
 	utils.ExitWhenErr(logger, err, "build tx error: %s", err)
 
 	// send tx
-	receipt, tx, err := transaction.SendTx(client, from, tx, *ledger, ledgerWallet, ledgerAccount, privateKey, net, *noconfirm, *confirmations)
+	receipt, tx, err := transaction.SendTx(client, sender, tx, *ledger, ledgerWallet, ledgerAccount, privateKey, net, *noconfirm, *confirmations)
 	utils.ExitWhenErr(logger, err, "send transaction error: %v", err)
 
 	if receipt != nil {
