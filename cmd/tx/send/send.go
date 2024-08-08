@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"met/cmd/tx"
-	"met/consts"
 	database "met/database"
 	transaction "met/transaction"
 	ttypes "met/types"
@@ -118,10 +117,7 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 		ledgerAccount *accounts.Account
 	)
 
-	walletType := consts.WalletTypeNormal
 	if *ledger {
-		walletType = consts.WalletTypeLedger
-
 		ledgerWallet, ledgerAccount, err = utils.ConnectLedger(*ledgerDerivePath)
 		utils.ExitWhenErr(logger, err, "connect ledger error: %s", err)
 		defer ledgerWallet.Close()
@@ -184,21 +180,19 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 	err = transaction.WaitBlock(client, *blockHeight, *blockHeightInterval, *blockHeightTimeout)
 	utils.ExitWhenErr(logger, err, "WaitBlock error: %v", err)
 
-	ctx2, cancel2 := utils.DefaultTimeoutContext()
-	defer cancel2()
 	// build tx
-	tx, err := transaction.BuildTx(ctx2, client, from, *to, value, input, *ledger, mode, *nonce, *chainID, *gasLimit, *gasLimitRatio, *gasRatio, *gasPrice, *tipCap, *feeCap, *all)
+	tx, err := transaction.BuildTx(client, from, *to, value, input, *ledger, mode, *nonce, *chainID, *gasLimit, *gasLimitRatio, *gasRatio, *gasPrice, *tipCap, *feeCap, *all)
 	utils.ExitWhenErr(logger, err, "build tx error: %s", err)
 
 	// send tx
-	receipt, tx2, err := transaction.SendTx(client, from, tx, walletType, ledgerWallet, ledgerAccount, privateKey, net, *noconfirm, *confirmations)
+	receipt, tx, err := transaction.SendTx(client, from, tx, *ledger, ledgerWallet, ledgerAccount, privateKey, net, *noconfirm, *confirmations)
 	utils.ExitWhenErr(logger, err, "send transaction error: %v", err)
 
 	if receipt != nil {
 		utils.ShowReceipt(logger, receipt)
 	}
 
-	link := fmt.Sprintf("%v/tx/%v", net.Explorer, tx2.Hash())
+	link := fmt.Sprintf("%v/tx/%v", net.Explorer, tx.Hash())
 	logger.Info().Msgf("tx link: %v", link)
 
 }

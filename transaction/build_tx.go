@@ -19,7 +19,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-func BuildTx(ctx context.Context, client *ethclient.Client, from string, to string, value *string, data []byte, ledger bool, gasMode mTypes.GasMode, nonce, chainId, gasLimit, gasLimitRatio, gasRatio, gasPrice, gasTipCap, gasFeeCap string, sendAll bool) (tx *types.Transaction, err error) {
+func BuildTx(client *ethclient.Client, from string, to string, value *string, data []byte, ledger bool, gasMode mTypes.GasMode, nonce, chainId, gasLimit, gasLimitRatio, gasRatio, gasPrice, gasTipCap, gasFeeCap string, sendAll bool) (tx *types.Transaction, err error) {
 	var (
 		nonce0     uint64
 		gasLimit0  uint64
@@ -31,6 +31,8 @@ func BuildTx(ctx context.Context, client *ethclient.Client, from string, to stri
 		ok         bool
 		logger     = utils.GetLogger("BuildTx")
 	)
+	ctx, cancel := utils.DefaultTimeoutContext()
+	defer cancel()
 
 	// 1. check flags
 	if gasLimit != "" && gasLimitRatio != "" {

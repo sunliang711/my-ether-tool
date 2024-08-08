@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"met/consts"
 	"met/database"
 	utils "met/utils"
 	"time"
@@ -23,7 +22,7 @@ var (
 )
 
 // 多返回一个types.Transaction是为了当不需要receipt(confirmations=0)时，能知道tx hash
-func SendTx(client *ethclient.Client, from string, tx *types.Transaction, walletType string, ledgerWallet accounts.Wallet, ledgerAccount *accounts.Account, privateKey *ecdsa.PrivateKey, net *database.Network, noconfirm bool, confirmations int8) (*types.Receipt, *types.Transaction, error) {
+func SendTx(client *ethclient.Client, from string, tx *types.Transaction, ledger bool, ledgerWallet accounts.Wallet, ledgerAccount *accounts.Account, privateKey *ecdsa.PrivateKey, net *database.Network, noconfirm bool, confirmations int8) (*types.Receipt, *types.Transaction, error) {
 	var err error
 	logger := utils.GetLogger("SendTx")
 
@@ -33,14 +32,7 @@ func SendTx(client *ethclient.Client, from string, tx *types.Transaction, wallet
 
 	// Sign tx
 	logger.Debug().Msgf("sign transaction")
-	switch walletType {
-	case consts.WalletTypeNormal:
-		tx, err = types.SignTx(tx, signer, privateKey)
-		if err != nil {
-			return nil, nil, err
-		}
-
-	case consts.WalletTypeLedger:
+	if ledger {
 		chainID, err := client.ChainID(context.Background())
 		if err != nil {
 			logger.Error().Msgf("get chain id error: %v", err)
@@ -53,8 +45,11 @@ func SendTx(client *ethclient.Client, from string, tx *types.Transaction, wallet
 			return nil, nil, err
 		}
 
-	default:
-		return nil, nil, errors.New("unsupported wallet type")
+	} else {
+		tx, err = types.SignTx(tx, signer, privateKey)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	logger.Debug().Msgf("tx hash: %v", tx.Hash())
