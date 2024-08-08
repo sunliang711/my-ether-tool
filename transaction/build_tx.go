@@ -78,7 +78,13 @@ func BuildTx(client *ethclient.Client, from string, to string, value *string, da
 	from = strings.TrimPrefix(from, "0x")
 	to = strings.TrimPrefix(to, "0x")
 	fromAddress := common.HexToAddress(from)
-	toAddress := common.HexToAddress(to)
+
+	// 如果to为空，则是合约部署交易，此时toAddress为nil
+	var toAddress *common.Address
+	if to != "" {
+		tt := common.HexToAddress(to)
+		toAddress = &tt
+	}
 
 	// value
 	if *value != "" {
@@ -132,7 +138,7 @@ func BuildTx(client *ethclient.Client, from string, to string, value *string, da
 	} else {
 		gasLimit0, err = client.EstimateGas(ctx, ethereum.CallMsg{
 			From:  fromAddress,
-			To:    &toAddress,
+			To:    toAddress,
 			Value: value0,
 			Data:  data,
 		})
@@ -310,34 +316,37 @@ func BuildTx(client *ethclient.Client, from string, to string, value *string, da
 
 	// ledger 只支持 legacy tx
 	if ledger {
+		logger.Debug().Msgf("legacy tx ")
 		tx = types.NewTx(&types.LegacyTx{
 			Nonce:    nonce0,
 			GasPrice: gasPrice0,
 			Gas:      gasLimit0,
-			To:       &toAddress,
+			To:       toAddress,
 			Value:    value0,
 			Data:     data,
 		})
 	} else {
 		if gasMode == mTypes.GasModeLegacy {
+			logger.Debug().Msgf("access list tx ")
 			tx = types.NewTx(&types.AccessListTx{
 				ChainID:    chainId0,
 				Nonce:      nonce0,
 				GasPrice:   gasPrice0,
 				Gas:        gasLimit0,
-				To:         &toAddress,
+				To:         toAddress,
 				Value:      value0,
 				Data:       data,
 				AccessList: []types.AccessTuple{},
 			})
 		} else if gasMode == mTypes.GasModeEip1559 {
+			logger.Debug().Msgf("dynamicFee tx(eip1559) ")
 			tx = types.NewTx(&types.DynamicFeeTx{
 				ChainID:   chainId0,
 				Nonce:     nonce0,
 				GasTipCap: gasTipCap0,
 				GasFeeCap: gasFeeCap0,
 				Gas:       gasLimit0,
-				To:        &toAddress,
+				To:        toAddress,
 				Value:     value0,
 				Data:      data,
 			})

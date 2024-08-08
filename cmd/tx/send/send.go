@@ -93,14 +93,14 @@ func init() {
 
 	noconfirm = sendCmd.Flags().BoolP("noconfirm", "y", false, "do not need to confirm")
 
-	confirmations = sendCmd.Flags().Int8("confirmations", 0, "blocks of confirmation (N<0: send tx without receipt. 0: send tx with receipt. N>0: send tx with receipt and N blocks confirmations)")
+	confirmations = sendCmd.Flags().Int8("confirmations", 0, "blocks of confirmation (N < 0: send tx without receipt. 0: send tx with receipt. N > 0: send tx with receipt and N blocks confirmations)")
 
 	blockHeight = sendCmd.Flags().String("height", "", "send tx after block height")
 	blockHeightInterval = sendCmd.Flags().Uint("heightInterval", 2, "check block height interval(unit: ms)")
 	blockHeightTimeout = sendCmd.Flags().Uint("heightTimeout", 600, "check block height timeout(unit: s)")
 
-	ledger = sendCmd.Flags().Bool("ledger", false, "use ledger to sign tx")
-	ledgerDerivePath = sendCmd.Flags().String("ledgerDerivePath", "m/44'/60'/0'/0/0", "ledger derive path")
+	ledger = sendCmd.Flags().Bool("ledger", false, "use ledger to sign tx, this flag will ignore --account and --account-index")
+	ledgerDerivePath = sendCmd.Flags().String("ledgerDerivePath", "m/44'/60'/0'/0/0", "ledger derive path, works only when --ledger is true")
 }
 
 func sendTransaction(cmd *cobra.Command, args []string) {
@@ -166,13 +166,17 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 
 	utils.ExitWhen(logger, *data != "" && (*abi != "" || len(*abiArgs) > 0), "--data conflicts with --abi and --args")
 	var input []byte
+	// 使用data
 	if *data != "" {
-		input, err = hex.DecodeString(*data)
+		// 删除前置0x
+		input, err = hex.DecodeString(strings.TrimPrefix(*data, "0x"))
 		utils.ExitWhenErr(logger, err, "decode data: %v error: %v", *data, err)
+		logger.Debug().Msgf("data: %s", hex.EncodeToString(input))
+	} else {
+		// 使用abi
+		input, err = transaction.ParseAbi(*abi, *method, *abiArgs...)
+		utils.ExitWhenErr(logger, err, "parse abi error: %v", err)
 	}
-
-	input, err = transaction.ParseAbi(*abi, *method, *abiArgs...)
-	utils.ExitWhenErr(logger, err, "parse abi error: %v", err)
 
 	mode := ttypes.GasMode(ttypes.GasMode_value[*gasMode])
 

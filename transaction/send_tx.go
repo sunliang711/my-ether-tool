@@ -74,7 +74,11 @@ func SendTx(client *ethclient.Client, from string, tx *types.Transaction, ledger
 
 	logger.Info().Msgf("Transaction to be sent")
 	logger.Info().Msgf("From: %s", from)
-	logger.Info().Msgf("To: %s", tx.To().String())
+	if tx.To() == nil {
+		logger.Info().Msgf("To: EMPTY (contract creation)")
+	} else {
+		logger.Info().Msgf("To: %s", tx.To().String())
+	}
 	logger.Info().Msgf("Value: %s (%s %s)", tx.Value().String(), value, net.Symbol)
 	logger.Info().Msgf("Data: 0x%s", hex.EncodeToString(tx.Data()))
 	logger.Info().Msgf("Nonce: %v", tx.Nonce())

@@ -61,12 +61,6 @@ func ReadErc20(ctx context.Context, contract string, client *ethclient.Client, n
 
 	logger.Debug().Msgf("network info: %v", net)
 
-	// logger.Info().Msgf("dial rpc: %v", net.Rpc)
-	// client, err := ethclient.DialContext(ctx, net.Rpc)
-	// if err != nil {
-	// 	return "", fmt.Errorf("dial rpc error: %w", err)
-	// }
-
 	contractAddress := common.HexToAddress(contract)
 	erc20Instance, err := utils.NewErc20(contractAddress, client)
 	if err != nil {
