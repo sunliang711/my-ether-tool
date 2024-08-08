@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"regexp"
 
 	"github.com/ethereum/go-ethereum/core/types"
@@ -14,13 +15,17 @@ func IsValidAddress(address string) bool {
 }
 
 func ShowReceipt(logger zerolog.Logger, receipt *types.Receipt) {
-	logger.Info().Msgf("[Receipt] Tx Hash: %v", receipt.TxHash)
-	logger.Info().Msgf("[Receipt] Block Number: %v", receipt.BlockNumber)
-	logger.Info().Msgf("[Receipt] Block Hash: %v", receipt.BlockHash)
-	logger.Info().Msgf("[Receipt] Contract Address: %v", receipt.ContractAddress)
-	logger.Info().Msgf("[Receipt] Gas Used: %v", receipt.GasUsed)
-	logger.Info().Msgf("[Receipt] Gas Price: %v", receipt.EffectiveGasPrice)
-	logger.Info().Msgf("[Receipt] Status: %v", receipt.Status)
-	logger.Info().Msgf("[Receipt] Tx Index: %v", receipt.TransactionIndex)
-	logger.Info().Msgf("[Receipt] Type: %v", receipt.Type)
+	receiptInfo := fmt.Sprintf(`
+Transaction Receipt
+Tx Hash:             %v
+Block Number:        %v
+Block Hash:          %v
+Contract Address:    %v
+Gas Used:            %v
+Gas Price:           %v
+Status:              %v
+Tx Index:            %v
+Type:                %v
+`, receipt.TxHash, receipt.BlockNumber, receipt.BlockHash, receipt.ContractAddress, receipt.GasUsed, receipt.EffectiveGasPrice, receipt.Status, receipt.TransactionIndex, receipt.Type)
+	logger.Info().Msg(receiptInfo)
 }

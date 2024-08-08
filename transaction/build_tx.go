@@ -168,7 +168,7 @@ func BuildTx(client *ethclient.Client, from string, to string, value *string, da
 
 	// gas
 	if gasMode == mTypes.GasModeAuto {
-		logger.Debug().Msgf("auto gas mode")
+		logger.Info().Msgf("Gas mode: auto")
 		logger.Debug().Msgf("query latest block header..")
 		header, err := client.HeaderByNumber(ctx, nil)
 		if err != nil {
@@ -207,7 +207,7 @@ func BuildTx(client *ethclient.Client, from string, to string, value *string, da
 		}
 
 	} else if gasMode == mTypes.GasModeLegacy {
-		logger.Debug().Msgf("legacy gas mode")
+		logger.Info().Msgf("Gas mode: legacy")
 		if gasPrice != "" {
 			logger.Debug().Msgf("parse gasPrice: %v", gasPrice)
 			gasPrice0, err = utils.ParseUnits(gasPrice, utils.UnitGwei)
@@ -246,7 +246,7 @@ func BuildTx(client *ethclient.Client, from string, to string, value *string, da
 		}
 
 	} else if gasMode == mTypes.GasModeEip1559 {
-		logger.Debug().Msgf("eip1559 gas mode")
+		logger.Info().Msgf("Gas mode: eip1559")
 
 		if gasTipCap != "" {
 			logger.Debug().Msgf("parse gasTipCap: %v", gasTipCap)
@@ -316,7 +316,7 @@ func BuildTx(client *ethclient.Client, from string, to string, value *string, da
 
 	// ledger 只支持 legacy tx
 	if ledger {
-		logger.Debug().Msgf("legacy tx ")
+		logger.Info().Msgf("Transaction type: legacy")
 		tx = types.NewTx(&types.LegacyTx{
 			Nonce:    nonce0,
 			GasPrice: gasPrice0,
@@ -327,7 +327,7 @@ func BuildTx(client *ethclient.Client, from string, to string, value *string, da
 		})
 	} else {
 		if gasMode == mTypes.GasModeLegacy {
-			logger.Debug().Msgf("access list tx ")
+			logger.Info().Msgf("Transaction type: accessList")
 			tx = types.NewTx(&types.AccessListTx{
 				ChainID:    chainId0,
 				Nonce:      nonce0,
@@ -339,7 +339,7 @@ func BuildTx(client *ethclient.Client, from string, to string, value *string, da
 				AccessList: []types.AccessTuple{},
 			})
 		} else if gasMode == mTypes.GasModeEip1559 {
-			logger.Debug().Msgf("dynamicFee tx(eip1559) ")
+			logger.Info().Msgf("Transaction type: dynamicFee (eip1559)")
 			tx = types.NewTx(&types.DynamicFeeTx{
 				ChainID:   chainId0,
 				Nonce:     nonce0,

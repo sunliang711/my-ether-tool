@@ -72,21 +72,25 @@ func SendTx(client *ethclient.Client, from string, tx *types.Transaction, ledger
 		return nil, nil, err
 	}
 
-	logger.Info().Msgf("Transaction to be sent")
-	logger.Info().Msgf("From: %s", from)
-	if tx.To() == nil {
-		logger.Info().Msgf("To: EMPTY (contract creation)")
-	} else {
-		logger.Info().Msgf("To: %s", tx.To().String())
+	to := "EMPTY (contract creation)"
+	if tx.To() != nil {
+		to = tx.To().String()
 	}
-	logger.Info().Msgf("Value: %s (%s %s)", tx.Value().String(), value, net.Symbol)
-	logger.Info().Msgf("Data: 0x%s", hex.EncodeToString(tx.Data()))
-	logger.Info().Msgf("Nonce: %v", tx.Nonce())
-	logger.Info().Msgf("ChainId: %s", tx.ChainId().String())
-	logger.Info().Msgf("GasLimit: %v", tx.Gas())
-	logger.Info().Msgf("GasPrice: %s (%s Gwei)", tx.GasPrice().String(), gasPrice)
-	logger.Info().Msgf("GasTipCap: %s (%s Gwei)", tx.GasTipCap().String(), tipCap)
-	logger.Info().Msgf("GasFeeCap: %s (%s Gwei)", tx.GasFeeCap().String(), feeCap)
+
+	txInfo := fmt.Sprintf(`
+Transaction to be sent
+From:                %s
+To:                  %s
+Value:               %s (%s %s)
+Data:                0x%s
+Nonce:               %v
+ChainId:             %s
+GasLimit:            %v
+GasPrice:            %s (%s Gwei)
+GasTipCap:           %s (%s Gwei)
+GasFeeCap:           %s (%s Gwei)
+`, from, to, tx.Value().String(), value, net.Symbol, hex.EncodeToString(tx.Data()), tx.Nonce(), tx.ChainId().String(), tx.Gas(), tx.GasPrice().String(), gasPrice, tx.GasTipCap().String(), tipCap, tx.GasFeeCap().String(), feeCap)
+	logger.Info().Msgf(txInfo)
 
 	if !noconfirm {
 		input, err := utils.ReadChar("Send ? [y/N] ")

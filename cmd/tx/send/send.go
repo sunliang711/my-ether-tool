@@ -118,6 +118,7 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 	)
 
 	if *ledger {
+		// 启用ledger时
 		ledgerWallet, ledgerAccount, err = utils.ConnectLedger(*ledgerDerivePath)
 		utils.ExitWhenErr(logger, err, "connect ledger error: %s", err)
 		defer ledgerWallet.Close()
@@ -126,7 +127,7 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 		from = ledgerAccount.Address.Hex()
 
 	} else {
-		// account
+		// 使用普通账户时
 		account, err := database.QueryAccountOrCurrent(*account, *accountIndex)
 		utils.ExitWhenErr(logger, err, "load account error: %s", err)
 
