@@ -77,9 +77,14 @@ func SendTx(client *ethclient.Client, from string, tx *types.Transaction, ledger
 		to = tx.To().String()
 	}
 
+	accountType := "local wallet"
+	if ledger {
+		accountType = "ledger"
+	}
+
 	txInfo := fmt.Sprintf(`
 Transaction to be sent
-From:                %s
+From:                %s (%s)
 To:                  %s
 Value:               %s (%s %s)
 Data:                0x%s
@@ -90,7 +95,7 @@ GasPrice:            %s (%s Gwei)
 GasTipCap:           %s (%s Gwei)
 GasFeeCap:           %s (%s Gwei)
 `,
-		from,
+		from, accountType,
 		to,
 		tx.Value().String(), value, net.Symbol,
 		hex.EncodeToString(tx.Data()),
