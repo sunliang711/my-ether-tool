@@ -19,6 +19,30 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+func ParseInput(data string, abi string, method string, abiArgs ...string) ([]byte, error) {
+	var (
+		input []byte
+		err   error
+	)
+	if data != "" {
+		// 使用data
+		// 删除0x
+		input, err = hex.DecodeString(strings.TrimPrefix(data, "0x"))
+		if err != nil {
+			return nil, fmt.Errorf("decode data: %v error: %v", data, err)
+		}
+
+	} else {
+		// 使用abi
+		input, err = ParseAbi(abi, method, abiArgs...)
+		if err != nil {
+			return nil, fmt.Errorf("parse abi error: %v", err)
+		}
+	}
+
+	return input, nil
+}
+
 func BuildTx(client *ethclient.Client, from string, to string, value *string, data []byte, ledger bool, gasMode mTypes.GasMode, nonce, chainId, gasLimit, gasLimitRatio, gasRatio, gasPrice, gasTipCap, gasFeeCap string, sendAll bool) (tx *types.Transaction, err error) {
 	var (
 		nonce0     uint64

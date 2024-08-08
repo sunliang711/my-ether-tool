@@ -2,7 +2,6 @@ package tx
 
 import (
 	"crypto/ecdsa"
-	"encoding/hex"
 	"fmt"
 	"met/cmd/tx"
 	database "met/database"
@@ -166,18 +165,9 @@ func sendTransaction(cmd *cobra.Command, args []string) {
 	logger.Info().Msgf("Network RPC: %s", net.Rpc)
 
 	utils.ExitWhen(logger, *data != "" && (*abi != "" || len(*abiArgs) > 0), "--data conflicts with --abi and --args")
-	var input []byte
-	// 使用data
-	if *data != "" {
-		// 删除前置0x
-		input, err = hex.DecodeString(strings.TrimPrefix(*data, "0x"))
-		utils.ExitWhenErr(logger, err, "decode data: %v error: %v", *data, err)
-		logger.Debug().Msgf("data: %s", hex.EncodeToString(input))
-	} else {
-		// 使用abi
-		input, err = transaction.ParseAbi(*abi, *method, *abiArgs...)
-		utils.ExitWhenErr(logger, err, "parse abi error: %v", err)
-	}
+
+	input, err := transaction.ParseInput(*data, *abi, *method, *abiArgs...)
+	utils.ExitWhenErr(logger, err, "%v", err)
 
 	mode := ttypes.GasMode(ttypes.GasMode_value[*gasMode])
 
