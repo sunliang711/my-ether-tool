@@ -63,7 +63,6 @@ var (
 func init() {
 	tx.TxCmd.AddCommand(sendCmd)
 
-	// sendCmd.Flags()
 	account = sendCmd.Flags().String("account", "", "account to be used to send tx,use current if empty")
 	accountIndex = sendCmd.Flags().Uint("account-index", 0, "account index to be used to send tx")
 	network = sendCmd.Flags().String("network", "", "used network, use current if empty")

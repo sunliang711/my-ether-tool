@@ -150,7 +150,7 @@ func Erc20AmountToHuman(amount string, decimals string) (string, error) {
 func Erc20AmountFromHuman(humanAmount string, decimals string) (string, error) {
 	d, err := strconv.ParseInt(decimals, 10, 32)
 	if err != nil {
-		return "", fmt.Errorf("parse decimals error: %w", err)
+		return "", fmt.Errorf("parse decimals: %v error: %w", decimals, err)
 	}
 
 	base := decimal.New(1, int32(d))
