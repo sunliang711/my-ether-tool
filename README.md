@@ -64,3 +64,9 @@ met tx send --to <contractAddress> --abi <abi string>|<built-in abi: erc20,erc72
 met erc20 transferFrom --contract <> --from <> --to <> --amount <> --network <> < --account <> | --ledger > [-v]
 met erc20 transfer --contract <> --to <> --amount <> --network <> < --account <> | --ledger > [-v]
 met erc20 approve --contract <> --spender <> --amount <> --network <> < --account <> | --ledger > [-v]
+
+## abi 编码
+### 普通函数
+met codec abiencode --abi 'transfer(string,string)' --args "My USDT" --args "MyUSDT"
+### 构造函数
+met codec abiencode --abi 'constructor(string,string)' --args "My USDT" --args "MyUSDT"

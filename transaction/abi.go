@@ -71,10 +71,14 @@ func init() {
 
 }
 
-// abiStr format: functionName(Type1,Type2,...)
+// abiStr format: functionName(Type1,Type2,...) OR constructor(Type1,Type2,...)
 func AbiEncode(abiStr string, abiArgs []string) (result []byte, err error) {
+	var selector []byte
 	// selector is the first 4 bytes of hash of abiStr
-	selector := crypto.Keccak256Hash([]byte(abiStr)).Bytes()[:4]
+	// 如果abiStr不是以constructor开头，则selector为abiStr的前4个字节的hash
+	if !strings.HasPrefix(abiStr, "constructor(") {
+		selector = crypto.Keccak256Hash([]byte(abiStr)).Bytes()[:4]
+	}
 
 	result = selector
 

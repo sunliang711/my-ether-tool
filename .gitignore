@@ -5,3 +5,5 @@ met
 *.db
 addNet.sh
 TODO
+/*.bytecode
+/*.abi

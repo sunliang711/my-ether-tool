@@ -44,7 +44,7 @@ func init() {
 	// is called directly, e.g.:
 	// abiencodeCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
-	abiStr20 = abiencodeCmd.Flags().String("abi", "", "abi string, eg: transfer(address,uint256)")
+	abiStr20 = abiencodeCmd.Flags().String("abi", "", "abi string, eg: transfer(address,uint256) for normal function OR constructor(address,uint256) for constructor")
 	abiArgs20 = abiencodeCmd.Flags().StringArray("args", nil, "arguments of abi(--args 0x... --args 200)")
 
 }
