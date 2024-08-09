@@ -58,6 +58,8 @@ met network add --name  bsc --rpc https://bsc-dataseed1.binance.org --explorer h
 met network add --name  op --rpc https://mainnet.optimism.io --explorer https://optimistic.etherscan.io --symbol ETH
 met network add --name  arbitrum --rpc https://arb1.arbitrum.io/rpc --explorer https://arbiscan.io --symbol ETH
 met network add --name  arbi --rpc https://arb1.arbitrum.io/rpc --explorer https://arbiscan.io --symbol ETH
+met network add --name  base --rpc https://mainnet.base.org --explorer https://base.blockscout.com/ --symbol ETH
+met network add --name  zksync --rpc https://mainnet.era.zksync.io --explorer https://explorer.zksync.io/ --symbol ETH
 met network add --name  goerli --rpc "https://goerli.infura.io/v3/${ID}" --explorer https://goerli.etherscan.io --symbol GETH
 met network add --name  sepolia --rpc "https://sepolia.infura.io/v3/${ID}" --explorer https://sepolia.etherscan.io --symbol ETH
 met network add --name  ftm --rpc https://1rpc.io/ftm --explorer https://ftmscan.com --symbol FTM
