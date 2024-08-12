@@ -33,6 +33,8 @@ func SendTx(client *ethclient.Client, from string, tx *types.Transaction, ledger
 	// Sign tx
 	logger.Debug().Msgf("sign transaction")
 	if ledger {
+		// 这里的chainID是从client获取的，而不是tx.ChainId()
+		// 因为目前ledger只支持legacyTx，legacyTx中没有chainID (build_tx.go: 321Line)
 		chainID, err := client.ChainID(context.Background())
 		if err != nil {
 			logger.Error().Msgf("get chain id error: %v", err)
@@ -41,7 +43,7 @@ func SendTx(client *ethclient.Client, from string, tx *types.Transaction, ledger
 		fmt.Printf("confirm on your ledger device..\n")
 		tx, err = ledgerWallet.SignTx(*ledgerAccount, tx, chainID)
 		if err != nil {
-			logger.Error().Msgf("sign tx error: %v", err)
+			logger.Error().Msgf("sign tx with ledger error: %v", err)
 			return nil, nil, err
 		}
 

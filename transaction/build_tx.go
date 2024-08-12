@@ -136,6 +136,7 @@ func BuildTx(client *ethclient.Client, from string, to string, value *string, da
 			return nil, fmt.Errorf("parse gasLimit: %v error: %w", gasLimit, err)
 		}
 	} else {
+		logger.Debug().Msgf("estimate gas..")
 		gasLimit0, err = client.EstimateGas(ctx, ethereum.CallMsg{
 			From:  fromAddress,
 			To:    toAddress,
