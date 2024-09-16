@@ -70,3 +70,7 @@ met erc20 approve --contract <> --spender <> --amount <> --network <> < --accoun
 met codec abiencode --abi 'transfer(string,string)' --args "My USDT" --args "MyUSDT"
 ### 构造函数
 met codec abiencode --abi 'constructor(string,string)' --args "My USDT" --args "MyUSDT"
+
+### 尽快发送10笔交易
+for i in `seq 0 9`;do met tx send --to 0x14bc30855e76Ba7e83d73BAb362C5cdc79EF2AF3 --value 0.01 --nonce $((i+34)) --network ftmTest --confirmations -1 -y
+done

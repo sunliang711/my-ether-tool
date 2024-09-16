@@ -47,6 +47,10 @@ import (
 	_ "met/cmd/tx/offsign"
 	_ "met/cmd/tx/send"
 
+	_ "met/cmd/address"
+	_ "met/cmd/address/checksum"
+	_ "met/cmd/address/contract_address"
+
 	_ "met/cmd/script"
 )
 
