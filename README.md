@@ -74,3 +74,14 @@ met codec abiencode --abi 'constructor(string,string)' --args "My USDT" --args "
 ### 尽快发送10笔交易
 for i in `seq 0 9`;do met tx send --to 0x14bc30855e76Ba7e83d73BAb362C5cdc79EF2AF3 --value 0.01 --nonce $((i+34)) --network ftmTest --confirmations -1 -y
 done
+
+### 发布合约
+```
+1. 编译代码得到bytecode，比如使用hardhat。在生成的json文件中找到bytecode字段
+2. 如果有构造函数，找到构造函数的abi，使用  met codec abiencode --abi 'constructor(string,string)' --args USDT2 --args USDT2 | grep -o '0x[^ ]\+' | sed -e 's/^0x//' 得到构造函数的参数abi
+3. 拼接bytecode和构造函数的参数abi，得到最终的data,形式为0x....,放到文件中: mycontract.bytecode
+4. 发送交易: met tx send --data "$(cat mycontract.bytecode)" --network <> --account <>
+5. 使用hardhat的verify插件验证合约，比如
+ npx hardhat verify  --contract contracts/ERCToken/USDT2.sol:USDT2 0xa9F3669e68B2Fe37BDfc3e0540C24F25D5593950 USDT2 USDT2 --network sepolia
+ npx hardhat verify --contract path_to_contract:contract_name contract_address constructor_args --network network_name
+ ```
